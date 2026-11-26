@@ -1,0 +1,3287 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI PPT Studio Pro v4 — Full 16:9 Visual &amp; 50+ Page Bilingual Academic PPT Maker</title>
+
+  <!-- Google Fonts: Noto Sans Devanagari (Hindi) + Poppins (English) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- PptxGenJS CDN (Real Editable .pptx Export) -->
+  <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+  <!-- html2canvas & jsPDF CDN (Direct High-Res .pdf Export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --app-font: 'Noto Sans Devanagari', 'Poppins', sans-serif;
+    }
+    * {
+      box-sizing: border-box;
+      font-family: var(--app-font);
+    }
+    body {
+      margin: 0;
+      background-color: #0b1120;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Fixed 1280x720 16:9 Slide Stage scaled cleanly */
+    #stage-scaler-outer {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.72);
+    }
+    #slide-stage-1280 {
+      width: 1280px;
+      height: 720px;
+      transform-origin: top left;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+    }
+
+    /* Inline ContentEditable Visual Feedback */
+    [contenteditable="true"] {
+      outline: none;
+      border-radius: 6px;
+      transition: box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+    [contenteditable="true"]:hover {
+      box-shadow: 0 0 0 2px rgba(217, 107, 82, 0.45);
+    }
+    [contenteditable="true"]:focus {
+      box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.9);
+      background-color: rgba(99, 102, 241, 0.08);
+    }
+
+    /* Interactive Draggable Callout Pins on 16:9 Image */
+    .callout-pin {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      z-index: 25;
+      cursor: grab;
+      user-select: none;
+    }
+    .callout-pin:active {
+      cursor: grabbing;
+      z-index: 30;
+    }
+    .callout-pin-dot {
+      width: 34px;
+      height: 34px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #f97316, #e11d48);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid #ffffff;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+    }
+    .callout-pin-label {
+      position: absolute;
+      left: 42px;
+      top: 50%;
+      transform: translateY(-50%);
+      white-space: nowrap;
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: rgba(15, 23, 42, 0.9);
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+    }
+
+    /* Laser Pointer Dot in Smart-Board Mode */
+    #laser-dot {
+      position: fixed;
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      background: radial-gradient(circle, #ffffff 10%, #ff1e1e 50%, rgba(255, 0, 0, 0) 80%);
+      box-shadow: 0 0 18px 6px rgba(255, 30, 30, 0.85);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      display: none;
+    }
+
+    /* Toast Animation */
+    @keyframes slideUpToast {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-anim {
+      animation: slideUpToast 0.22s ease forwards;
+    }
+
+    /* Offscreen Sandbox for Direct PDF Export */
+    #pdf-render-sandbox {
+      position: fixed;
+      left: -99999px;
+      top: 0;
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Exact 16:9 Vector Print-to-PDF Styles */
+    #print-deck-container {
+      display: none;
+    }
+    @media print {
+      @page {
+        size: 1280px 720px;
+        margin: 0;
+      }
+      html, body {
+        width: 1280px !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      body > *:not(#print-deck-container) {
+        display: none !important;
+      }
+      #print-deck-container {
+        display: block !important;
+        width: 1280px !important;
+      }
+      .print-slide-page {
+        width: 1280px !important;
+        height: 720px !important;
+        overflow: hidden !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        position: relative !important;
+      }
+      .print-slide-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden select-none">
+
+  <!-- ==================== TOP TOOLBAR ==================== -->
+  <header class="h-14 bg-slate-900 border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 z-30">
+    <!-- Brand -->
+    <div class="flex items-center gap-2.5 min-w-0">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 via-rose-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-orange-600/20 shrink-0">
+        <i data-lucide="presentation" class="w-5 h-5 text-white"></i>
+      </div>
+      <div class="truncate">
+        <div class="flex items-center gap-2">
+          <h1 class="text-sm sm:text-base font-extrabold text-white leading-tight truncate">AI PPT Studio Pro <span class="text-orange-400">v4</span></h1>
+          <span id="db-save-badge" class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-semibold text-emerald-300">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Auto-Saved
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400 hidden md:block leading-tight">Full 16:9 Visual &amp; 50+ Page Bilingual Academic PPT Maker</p>
+      </div>
+    </div>
+
+    <!-- Primary Action Buttons -->
+    <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-1">
+      <button id="btn-open-ai-modal" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition shrink-0">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <span>AI PPT / 50-Page Builder</span>
+      </button>
+
+      <button id="btn-open-batch-img" class="px-2.5 py-1.5 rounded-lg bg-amber-600/90 hover:bg-amber-500 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition shrink-0" title="Batch AI Image Generator">
+        <i data-lucide="images" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">बैच AI इमेज</span>
+      </button>
+
+      <div class="h-5 w-px bg-slate-700 hidden sm:block shrink-0"></div>
+
+      <button id="btn-save-json" class="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 border border-slate-700 transition shrink-0" title="Backup Project (.json)">
+        <i data-lucide="save" class="w-4 h-4"></i>
+        <span class="hidden xl:inline">Save</span>
+      </button>
+
+      <label class="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 border border-slate-700 cursor-pointer transition shrink-0" title="Open Project (.json)">
+        <i data-lucide="folder-open" class="w-4 h-4"></i>
+        <span class="hidden xl:inline">Open</span>
+        <input type="file" id="input-open-json" accept=".json" class="hidden" />
+      </label>
+
+      <button id="btn-present" class="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-md shadow-sky-600/20 transition shrink-0" title="Smart Board Present Mode + Zoom + Laser + Pen">
+        <i data-lucide="monitor-play" class="w-4 h-4"></i>
+        <span class="hidden lg:inline">Smart Board</span>
+      </button>
+
+      <button id="btn-open-pdf-modal" class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-md shadow-rose-600/20 transition shrink-0" title="PPT to PDF Export">
+        <i data-lucide="file-text" class="w-4 h-4"></i>
+        <span>PDF</span>
+      </button>
+
+      <button id="btn-export-pptx" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition shrink-0" title="Download Editable Microsoft PowerPoint (.pptx)">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>.PPTX</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== 3-PANE WORKSPACE ==================== -->
+  <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+
+    <!-- LEFT SIDEBAR: Slide Strip + Quick 16:9 Image & Text Page Buttons -->
+    <aside class="w-full lg:w-64 bg-slate-900/95 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col shrink-0 max-h-52 lg:max-h-none">
+      <!-- Top Quick-Add Controls -->
+      <div class="p-2 border-b border-slate-800 space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300">स्लाइड्स (<span id="slide-count-badge">6</span>)</span>
+          <button id="btn-add-slide" class="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold transition flex items-center gap-1">
+            <i data-lucide="plus" class="w-3 h-3"></i> स्लाइड
+          </button>
+        </div>
+        <!-- Dedicated 1-Click Quick Add for 16:9 Image Page & Text Page -->
+        <div class="grid grid-cols-2 gap-1.5">
+          <button id="btn-quick-add-img" class="px-2 py-1 rounded-md bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/40 text-amber-300 text-[10px] font-bold transition truncate" title="Add Full 16:9 Image Slide">
+            + 16:9 इमेज पेज
+          </button>
+          <button id="btn-quick-add-text" class="px-2 py-1 rounded-md bg-sky-600/20 hover:bg-sky-600/35 border border-sky-500/40 text-sky-300 text-[10px] font-bold transition truncate" title="Add Full Text Explanation Slide">
+            + टेक्स्ट पेज
+          </button>
+        </div>
+      </div>
+
+      <!-- Search + Jump to Slide # -->
+      <div class="p-2 border-b border-slate-800/80 flex items-center gap-1.5 bg-slate-950/40">
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2"></i>
+          <input id="input-slide-search" type="text" placeholder="खोजें..." class="w-full pl-7 pr-2 py-1 rounded-md bg-slate-900 border border-slate-700 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <input id="input-slide-jump" type="number" min="1" placeholder="#" class="w-11 px-1 py-1 rounded-md bg-slate-900 border border-slate-700 text-[11px] text-center text-white focus:outline-none focus:border-orange-500" />
+          <button id="btn-slide-jump" class="px-1.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 border border-slate-700">Go</button>
+        </div>
+      </div>
+
+      <!-- Slide Thumbnail List -->
+      <div id="slide-list" class="flex-1 overflow-x-auto lg:overflow-y-auto p-2 flex lg:flex-col gap-1.5"></div>
+
+      <!-- Slide Reorder / Duplicate / Delete -->
+      <div class="p-2 border-t border-slate-800 bg-slate-950/70 flex items-center justify-around gap-1">
+        <button id="btn-move-up" class="p-1.5 rounded-md hover:bg-slate-800 text-slate-300 transition" title="ऊपर ले जाएं"><i data-lucide="arrow-up" class="w-4 h-4"></i></button>
+        <button id="btn-move-down" class="p-1.5 rounded-md hover:bg-slate-800 text-slate-300 transition" title="नीचे ले जाएं"><i data-lucide="arrow-down" class="w-4 h-4"></i></button>
+        <button id="btn-dup-slide" class="p-1.5 rounded-md hover:bg-slate-800 text-slate-300 transition" title="डुप्लिकेट करें"><i data-lucide="copy" class="w-4 h-4"></i></button>
+        <button id="btn-del-slide" class="p-1.5 rounded-md hover:bg-rose-900/50 text-rose-400 transition" title="डिलीट करें"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+      </div>
+    </aside>
+
+    <!-- CENTER STAGE: 16:9 Live Interactive Canvas -->
+    <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden relative min-h-[260px]">
+      <!-- Stage Sub-header -->
+      <div class="px-4 py-2 bg-slate-900/70 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2 text-slate-300">
+          <span id="active-slide-pill" class="px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 font-bold">पृष्ठ 1 / 6</span>
+          <span id="active-layout-pill" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-amber-300 text-[11px] font-bold">cover</span>
+          <span id="stage-hint-text" class="text-slate-400 hidden md:inline">| स्लाइड पर किसी भी टेक्स्ट को क्लिक करके सीधे एडिट करें</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="active-theme-indicator" class="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold">UP Board Academic</span>
+        </div>
+      </div>
+
+      <!-- Responsive Canvas Viewport -->
+      <div id="stage-viewport" class="flex-1 overflow-hidden p-3 sm:p-5 lg:p-6 flex items-center justify-center">
+        <div id="stage-scaler-outer">
+          <div id="slide-stage-1280" class="select-text"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT TABBED INSPECTOR (डिज़ाइन & लेआउट / AI & इमेज / थीम & टूल्स) -->
+    <aside class="w-full lg:w-96 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col shrink-0 max-h-80 lg:max-h-none">
+      <div class="grid grid-cols-3 border-b border-slate-800 text-[11px] font-bold shrink-0">
+        <button data-tab="design" class="inspector-tab py-2.5 text-center border-b-2 border-indigo-500 text-indigo-400 bg-slate-800/50 flex items-center justify-center gap-1">
+          <i data-lucide="layout-template" class="w-3.5 h-3.5"></i> डिज़ाइन &amp; लेआउट
+        </button>
+        <button data-tab="ai" class="inspector-tab py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AI &amp; इमेज
+        </button>
+        <button data-tab="theme" class="inspector-tab py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1">
+          <i data-lucide="palette" class="w-3.5 h-3.5"></i> थीम &amp; टूल्स
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-3.5 space-y-4">
+
+        <!-- ===== TAB 1: डिज़ाइन & लेआउट (10 Layouts + Full 16:9 Controls + Content Fields) ===== -->
+        <div id="tab-design" class="inspector-panel space-y-4">
+          <!-- 10 Master Layouts Grid -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-2">10 मास्टर लेआउट्स (1-Click Switch)</label>
+            <div class="grid grid-cols-2 gap-1.5" id="layout-grid">
+              <button data-layout="full-image" class="layout-btn p-2 rounded-lg border border-amber-500/40 bg-amber-950/25 hover:border-amber-400 text-left transition">
+                <div class="text-[11px] font-bold text-amber-300">🖼️ Full 16:9 Image</div>
+                <div class="text-[10px] text-slate-400">पूरा पेज सिर्फ बड़ा चित्र</div>
+              </button>
+              <button data-layout="text-focus" class="layout-btn p-2 rounded-lg border border-sky-500/40 bg-sky-950/25 hover:border-sky-400 text-left transition">
+                <div class="text-[11px] font-bold text-sky-300">📝 Text Focus</div>
+                <div class="text-[10px] text-slate-400">अगला फुल टेक्स्ट पेज</div>
+              </button>
+              <button data-layout="cover" class="layout-btn p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-indigo-500 text-left transition">
+                <div class="text-[11px] font-bold text-white">🎯 Cover Slide</div>
+                <div class="text-[10px] text-slate-400">अध्याय मुख्य पृष्ठ</div>
+              </button>
+              <button data-layout="split-visual" class="layout-btn p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-indigo-500 text-left transition">
+                <div class="text-[11px] font-bold text-white">📑 Split Visual</div>
+                <div class="text-[10px] text-slate-400">बाएँ टेक्स्ट + दाएँ चित्र</div>
+              </button>
+              <button data-layout="simple-box" class="layout-btn p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-indigo-500 text-left transition">
+                <div class="text-[11px] font-bold text-white">💡 Simple Box</div>
+                <div class="text-[10px] text-slate-400">चित्र + सरल भाषा बॉक्स</div>
+              </button>
+              <button data-layout="table-visual" class="layout-btn p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-indigo-500 text-left transition">
+                <div class="text-[11px] font-bold text-white">📊 Table Visual</div>
+                <div class="text-[10px] text-slate-400">तुलना सारणी + चित्र</div>
+              </button>
+              <button data-layout="formula" class="layout-btn p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-indigo-500 text-left transition">
+                <div class="text-[11px] font-bold text-white">📐 Formula Sheet</div>
+                <div class="text-[10px] text-slate-400">प्रमुख सूत्र कार्ड्स</div>
+              </button>
+              <button data-layout="steps" class="layout-btn p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-indigo-500 text-left transition">
+                <div class="text-[11px] font-bold text-white">🔢 Steps Timeline</div>
+                <div class="text-[10px] text-slate-400">4 चरणबद्ध प्रक्रिया</div>
+              </button>
+              <button data-layout="quiz" class="layout-btn p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-indigo-500 text-left transition">
+                <div class="text-[11px] font-bold text-white">❓ Quiz / PYQ MCQ</div>
+                <div class="text-[10px] text-slate-400">प्रश्न + 4 विकल्प + उत्तर</div>
+              </button>
+              <button data-layout="mindmap" class="layout-btn p-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-indigo-500 text-left transition">
+                <div class="text-[11px] font-bold text-white">🧠 Mind-Map</div>
+                <div class="text-[10px] text-slate-400">4-क्वाड्रंट रिवीजन</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- DEDICATED FULL 16:9 IMAGE CONTROLS (Visible when layout === 'full-image') -->
+          <div id="full-image-controls" class="hidden p-3.5 rounded-xl bg-amber-950/35 border border-amber-500/40 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
+                <i data-lucide="maximize" class="w-4 h-4"></i> Full 16:9 Image कंट्रोल
+              </h3>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 font-bold">16:9 Visual</span>
+            </div>
+
+            <!-- Pure Image Mode Toggle -->
+            <label class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-700 cursor-pointer">
+              <div>
+                <div class="text-xs font-bold text-white">Pure Image Mode (100% सिर्फ इमेज)</div>
+                <div class="text-[10px] text-slate-400">हेडर, बैज, कैप्शन और फ़ुटर छिपाएं</div>
+              </div>
+              <input type="checkbox" id="chk-pure-image" class="w-4 h-4 accent-amber-500 rounded" />
+            </label>
+
+            <!-- Image Fit Toggle: Contain vs Cover -->
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Image Fit (इमेज फिट मोड)</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" id="btn-fit-contain" class="fit-btn py-1.5 px-2 rounded-lg border text-xs font-bold transition">Contain (पूरा चित्र दिखे)</button>
+                <button type="button" id="btn-fit-cover" class="fit-btn py-1.5 px-2 rounded-lg border text-xs font-bold transition">Cover (एज-टू-एज फुल)</button>
+              </div>
+            </div>
+
+            <!-- Interactive Callout Pins Manager -->
+            <div class="pt-2 border-t border-amber-500/25 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-200">📍 इंटरैक्टिव कॉलआउट पिन्स (1, 2, 3...)</span>
+                <button id="btn-add-pin" class="px-2.5 py-1 rounded-md bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold transition">+ पिन जोड़ें</button>
+              </div>
+              <p class="text-[10px] text-slate-400">स्लाइड पर बने नंबर पिन (1, 2, 3) को माउस/उंगली से खींचकर डायग्राम के सही हिस्से पर रखें।</p>
+              <div id="pins-editor-list" class="space-y-1.5"></div>
+            </div>
+          </div>
+
+          <!-- Content Fields -->
+          <div class="pt-2 border-t border-slate-800 space-y-2.5">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] font-semibold text-slate-400 mb-1">टॉप-राइट बैज (Badge)</label>
+                <input id="ed-badge" type="text" class="track-focus w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-slate-400 mb-1">सूत्र बॉक्स (Formula)</label>
+                <input id="ed-formula" type="text" class="track-focus w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-amber-300 font-mono focus:outline-none focus:border-indigo-500" placeholder="F = G(m₁m₂)/r²" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-400 mb-1">शीर्षक (Title)</label>
+              <input id="ed-title" type="text" class="track-focus w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-400 mb-1">उप-शीर्षक (Subtitle)</label>
+              <input id="ed-subtitle" type="text" class="track-focus w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-400 mb-1">परिचय / मुख्य व्याख्या (Intro)</label>
+              <textarea id="ed-intro" rows="2" class="track-focus w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+            <!-- MCQ Section -->
+            <div id="ed-mcq-section" class="hidden p-3 rounded-xl bg-indigo-950/35 border border-indigo-500/30 space-y-2">
+              <div class="text-xs font-bold text-indigo-300">📝 MCQ / PYQ प्रश्न संपादक</div>
+              <textarea id="ed-mcq-q" rows="2" placeholder="प्रश्न लिखें..." class="track-focus w-full px-2 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"></textarea>
+              <div class="grid grid-cols-2 gap-1.5">
+                <input id="ed-mcq-opt0" type="text" placeholder="Option A" class="track-focus px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white" />
+                <input id="ed-mcq-opt1" type="text" placeholder="Option B" class="track-focus px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white" />
+                <input id="ed-mcq-opt2" type="text" placeholder="Option C" class="track-focus px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white" />
+                <input id="ed-mcq-opt3" type="text" placeholder="Option D" class="track-focus px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white" />
+              </div>
+              <div class="grid grid-cols-3 gap-2 items-center">
+                <label class="text-[11px] text-slate-300 font-semibold">सही उत्तर:</label>
+                <select id="ed-mcq-ans" class="col-span-2 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs text-emerald-300 font-bold">
+                  <option value="0">Option (A)</option>
+                  <option value="1">Option (B)</option>
+                  <option value="2">Option (C)</option>
+                  <option value="3">Option (D)</option>
+                </select>
+              </div>
+              <textarea id="ed-mcq-exp" rows="2" placeholder="सही उत्तर की व्याख्या..." class="track-focus w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-slate-200"></textarea>
+            </div>
+
+            <!-- Table Controls -->
+            <div id="ed-table-section" class="hidden p-2.5 rounded-xl bg-slate-800/60 border border-slate-700 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-200">📊 तालिका (Table)</span>
+                <div class="flex gap-1">
+                  <button id="btn-add-table-row" class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold">+ Row</button>
+                  <button id="btn-del-table-row" class="px-2 py-0.5 rounded bg-rose-900/70 text-rose-200 text-[10px] font-bold">- Row</button>
+                  <button id="btn-add-table-col" class="px-2 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-bold">+ Col</button>
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">टेबल के सेल सीधे स्लाइड कैनवास पर क्लिक करके एडिट करें।</p>
+            </div>
+
+            <!-- Bullets Manager -->
+            <div id="ed-bullets-wrapper" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-300">मुख्य बिंदु / कार्ड्स (Bullets)</span>
+                <button id="btn-add-bullet" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold">+ जोड़ें</button>
+              </div>
+              <div id="ed-bullets-list" class="space-y-2"></div>
+            </div>
+
+            <!-- Callout Box -->
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+              <label class="block text-xs font-bold text-slate-300">कॉलआउट बॉक्स (बोर्ड परीक्षा / सरल भाषा)</label>
+              <div class="grid grid-cols-2 gap-2">
+                <select id="ed-callout-type" class="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white">
+                  <option value="exam">🔴 बोर्ड परीक्षा बिंदु</option>
+                  <option value="simple">🔵 सरल भाषा में समझें</option>
+                </select>
+                <input id="ed-callout-title" type="text" class="track-focus px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white" placeholder="शीर्षक..." />
+              </div>
+              <textarea id="ed-callout-text" rows="2" class="track-focus w-full px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" placeholder="खाली छोड़ने पर बॉक्स छिप जाएगा..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== TAB 2: AI & इमेज (2-Slide Pair + Per-Slide AI + Translate + 16:9 Image Engine) ===== -->
+        <div id="tab-ai" class="inspector-panel hidden space-y-4">
+          <!-- Single Slide AI + 2-Slide Pair Generator -->
+          <div class="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/35 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                <i data-lucide="wand-2" class="w-4 h-4"></i> सिंगल स्लाइड AI &amp; 2-स्लाइड पेयर
+              </h3>
+            </div>
+
+            <select id="single-ai-lang" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white">
+              <option value="bilingual">🌐 हिंदी + English (Bilingual NCERT)</option>
+              <option value="hindi">🇮🇳 हिंदी (Pure Hindi)</option>
+              <option value="english">🇬🇧 English (Pure English)</option>
+              <option value="hinglish">💬 Hinglish (Roman Hindi + English)</option>
+            </select>
+
+            <textarea id="input-page-ai-prompt" rows="3" class="w-full px-3 py-2 rounded-lg bg-slate-900/90 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" placeholder="टॉपिक लिखें: जैसे 'मानव हृदय की संरचना और रक्त परिसंचरण' या 'प्रकाश संश्लेषण की प्रक्रिया'..."></textarea>
+
+            <label class="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer">
+              <input type="checkbox" id="chk-page-regen-img" checked class="accent-indigo-500 rounded" />
+              <span>कंटेंट के साथ 16:9 AI इमेज भी अपने-आप बनाएं</span>
+            </label>
+
+            <!-- 1-Click 2-Slide Pair Button -->
+            <button id="btn-gen-pair-slides" class="w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-md transition">
+              <span>🖼️+📝</span> 2-Slide Pair बनाएं (16:9 इमेज + अगला टेक्स्ट पेज)
+            </button>
+
+            <button id="btn-run-page-ai" class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> सिर्फ इसी पेज को AI से अपडेट करें
+            </button>
+          </div>
+
+          <!-- 1-Click Translate This Slide -->
+          <div class="p-3 rounded-xl bg-sky-950/35 border border-sky-500/30 space-y-2">
+            <div class="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+              <i data-lucide="languages" class="w-4 h-4"></i> 🌐 इस पेज का अनुवाद करें (1-Click Translate)
+            </div>
+            <div class="flex gap-2">
+              <select id="translate-target-lang" class="flex-1 px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white">
+                <option value="hindi">हिंदी (Pure Hindi)</option>
+                <option value="english">English (Pure English)</option>
+                <option value="bilingual" selected>हिंदी + English (Bilingual)</option>
+                <option value="hinglish">Hinglish (Roman Hindi)</option>
+              </select>
+              <button id="btn-translate-slide" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shrink-0">अनुवाद करें</button>
+            </div>
+          </div>
+
+          <!-- Auto 16:9 AI Image Engine -->
+          <div class="p-3.5 rounded-xl bg-slate-800/50 border border-slate-700 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <i data-lucide="image" class="w-4 h-4"></i> AI इमेज &amp; क्लिपआर्ट इंजन
+              </h3>
+              <button id="btn-refine-img-prompt" class="text-[11px] text-indigo-300 hover:text-indigo-200 font-semibold">🪄 प्रॉम्प्ट सुधारें</button>
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">AI Image Prompt (16:9 Widescreen Diagram)</label>
+              <textarea id="input-img-prompt" rows="2" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"></textarea>
+            </div>
+
+            <button id="btn-gen-slide-img" class="w-full py-2 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition">
+              <span>🎨</span> इस पेज की 16:9 इमेज बनाएं
+            </button>
+
+            <div id="slide-img-loading" class="hidden p-2 rounded-lg bg-amber-950/60 border border-amber-500/40 flex items-center gap-2">
+              <div class="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin shrink-0"></div>
+              <span class="text-[11px] text-amber-200 font-medium">AI हाई-रिज़ॉल्यूशन 16:9 इमेज बना रहा है...</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <label class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-medium text-center text-slate-200 cursor-pointer flex items-center justify-center gap-1 transition">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i> अपलोड इमेज
+                <input type="file" id="input-upload-img" accept="image/*" class="hidden" />
+              </label>
+              <button id="btn-clear-img" class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-rose-900/40 border border-slate-600 text-xs font-medium text-rose-300 flex items-center justify-center gap-1 transition">
+                <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> इमेज हटाएं
+              </button>
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">इमेज कैप्शन (Caption)</label>
+              <input id="input-img-caption" type="text" class="track-focus w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+
+            <!-- 16 Built-in Vector Cliparts -->
+            <div class="pt-2 border-t border-slate-700/80">
+              <label class="block text-[11px] font-bold text-slate-300 mb-1.5">16 वेक्टर क्लिपआर्ट्स (Built-in SVG)</label>
+              <div id="clipart-grid" class="grid grid-cols-4 gap-1.5"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== TAB 3: थीम & टूल्स (4 Themes + Math Symbols + Global Footer) ===== -->
+        <div id="tab-theme" class="inspector-panel hidden space-y-4">
+          <!-- Math & Science Quick-Insert Symbol Bar -->
+          <div class="p-3 rounded-xl bg-slate-950/75 border border-slate-800">
+            <div class="text-xs font-bold text-indigo-300 mb-2 flex items-center justify-between">
+              <span>∑ Math &amp; Science Symbols</span>
+              <span class="text-[10px] text-slate-400">क्लिक करके डालें</span>
+            </div>
+            <div id="symbol-bar" class="flex flex-wrap gap-1.5"></div>
+          </div>
+
+          <!-- 4 Master Themes -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-2">4 मास्टर थीम्स (पूरे PPT पर लागू)</label>
+            <div id="theme-list" class="space-y-2"></div>
+          </div>
+
+          <!-- Global Footer, Page Label & Font Scale -->
+          <div class="pt-3 border-t border-slate-800 space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">ग्लोबल फ़ुटर (Chapter / School Name)</label>
+              <input id="input-global-footer" type="text" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">पेज नंबर भाषा</label>
+              <select id="input-page-label" class="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white">
+                <option value="पृष्ठ">पृष्ठ X / Y (Hindi)</option>
+                <option value="Page">Page X / Y (English)</option>
+              </select>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="font-bold text-slate-300">फ़ॉन्ट साइज़ स्केल</span>
+                <span id="font-scale-label" class="text-indigo-400 font-bold">100%</span>
+              </div>
+              <input id="input-font-scale" type="range" min="85" max="115" value="100" class="w-full accent-indigo-500" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+  </div>
+
+  <!-- ==================== AI DECK / 50-PAGE MEGA BUILDER MODAL ==================== -->
+  <div id="ai-deck-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5"></i></span>
+          <div>
+            <h2 class="text-base font-extrabold text-white">AI PPT &amp; 50-Page Auto-Chapter Builder</h2>
+            <p class="text-[11px] text-slate-400">16:9 इमेज + अगला टेक्स्ट पेयर या स्टैंडर्ड एकेडमिक मिक्स में 60+ स्लाइड्स बनाएं</p>
+          </div>
+        </div>
+        <button id="btn-close-ai-modal" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <!-- Mode Tabs -->
+      <div class="grid grid-cols-2 bg-slate-950/60 border-b border-slate-800 text-xs font-bold shrink-0">
+        <button id="tab-btn-batch" class="py-3 text-center border-b-2 border-indigo-500 text-indigo-300 bg-indigo-500/10">⚡ Batch Mode (5–15 Slides)</button>
+        <button id="tab-btn-mega" class="py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-white">🚀 50-Page Mega Builder (24–60 Slides)</button>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto">
+        <!-- Append vs Replace -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-2">कहाँ जोड़ें? (Target PPT)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <label class="cursor-pointer">
+              <input type="radio" name="ai-deck-mode" value="append" class="peer hidden" checked />
+              <div class="p-3 rounded-xl border-2 border-slate-700 bg-slate-800/50 peer-checked:border-emerald-500 peer-checked:bg-emerald-950/30 transition">
+                <div class="text-xs font-bold text-white">➕ इसी PPT में जोड़ें (Append)</div>
+                <div id="append-preview-text" class="text-[11px] text-emerald-300 mt-1 font-medium">वर्तमान: 6 → नया कुल: 18 स्लाइड्स</div>
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="ai-deck-mode" value="new" class="peer hidden" />
+              <div class="p-3 rounded-xl border-2 border-slate-700 bg-slate-800/50 peer-checked:border-indigo-500 peer-checked:bg-indigo-950/30 transition">
+                <div class="text-xs font-bold text-white">🆕 नया PPT बनाएं (Replace)</div>
+                <div class="text-[11px] text-slate-400 mt-1">पुरानी स्लाइड्स हटाकर नया PPT शुरू करें</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Slide Style Selector (NEW in v4!) -->
+        <div>
+          <label class="block text-xs font-bold text-amber-300 mb-1.5">स्लाइड स्टाइल चुनें (Presentation Pattern)</label>
+          <select id="ai-style-select" class="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-amber-500/50 text-xs font-bold text-white focus:outline-none focus:border-amber-400">
+            <option value="pairs">🖼️+📝 Full 16:9 Image + Next Text Pairs (Smart Board Mode)</option>
+            <option value="standard">📚 Standard Academic Mix (All 10 NCERT/UP Board Layouts)</option>
+          </select>
+        </div>
+
+        <!-- Topic Input -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">अध्याय / टॉपिक या विस्तृत नोट्स</label>
+          <textarea id="ai-topic-input" rows="3" class="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500" placeholder="उदा: कक्षा 11 जीव विज्ञान - मानव पाचन तंत्र, या कक्षा 12 भौतिकी - प्रकाशिकी (Optics) सम्पूर्ण अध्याय..."></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">कक्षा / स्तर</label>
+            <input id="ai-class-input" type="text" value="Class 11-12 UP Board / NCERT" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">भाषा मोड</label>
+            <select id="ai-lang-select" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white">
+              <option value="bilingual" selected>🌐 हिंदी + English (Bilingual)</option>
+              <option value="hindi">🇮🇳 हिंदी (Pure Hindi)</option>
+              <option value="english">🇬🇧 English (Pure English)</option>
+              <option value="hinglish">💬 Hinglish</option>
+            </select>
+          </div>
+          <div id="batch-count-box">
+            <label class="block text-xs font-bold text-slate-300 mb-1">बैच स्लाइड्स</label>
+            <select id="ai-batch-count" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white">
+              <option value="5">5 स्लाइड्स</option>
+              <option value="7">7 स्लाइड्स</option>
+              <option value="12" selected>12 स्लाइड्स</option>
+              <option value="15">15 स्लाइड्स</option>
+            </select>
+          </div>
+          <div id="mega-count-box" class="hidden">
+            <label class="block text-xs font-bold text-amber-300 mb-1">मेगा स्लाइड्स</label>
+            <select id="ai-mega-count" class="w-full px-3 py-2 rounded-xl bg-slate-800 border border-amber-500/60 text-xs text-amber-200 font-bold">
+              <option value="24">24 स्लाइड्स</option>
+              <option value="36">36 स्लाइड्स</option>
+              <option value="50" selected>50 स्लाइड्स</option>
+              <option value="60">60 स्लाइड्स</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="p-3 rounded-xl bg-amber-950/30 border border-amber-500/30 flex items-start gap-2.5 cursor-pointer">
+          <input type="checkbox" id="chk-auto-images" class="mt-0.5 w-4 h-4 accent-amber-500 rounded" />
+          <div>
+            <div class="text-xs font-bold text-amber-200">🎨 साथ में 16:9 AI इमेज भी जनरेट करें</div>
+            <div class="text-[11px] text-slate-400">50-पेज डेक के लिए इसे अनचेक रखकर पहले कंटेंट बना लें, फिर 'बैच AI इमेज' से 1–12 रेंज में इमेज बनवाना सबसे तेज़ रहता है।</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="px-5 py-3.5 bg-slate-950/70 border-t border-slate-800 flex items-center justify-end gap-2 shrink-0">
+        <button id="btn-cancel-ai-modal" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300">रद्द करें</button>
+        <button id="btn-start-ai-gen" class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-4 h-4"></i> <span id="btn-start-ai-label">बैच स्लाइड्स बनाएं</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BATCH AI IMAGE MODAL ==================== -->
+  <div id="batch-img-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-amber-300 flex items-center gap-2"><i data-lucide="images" class="w-4 h-4"></i> बैच 16:9 AI इमेज जनरेटर</h3>
+        <button id="btn-close-batch-img" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-800/70 border border-slate-700 cursor-pointer">
+            <input type="radio" name="batch-img-scope" value="missing" checked class="accent-amber-500" />
+            <span>सभी खाली इमेज स्लाइड्स (जिनमें इमेज नहीं है)</span>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-800/70 border border-slate-700 cursor-pointer">
+            <input type="radio" name="batch-img-scope" value="range" class="accent-amber-500" />
+            <span>कस्टम रेंज (जैसे स्लाइड 1 से 12 तक)</span>
+          </label>
+        </div>
+        <div id="batch-img-range-inputs" class="grid grid-cols-2 gap-3 opacity-50 pointer-events-none">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">From Slide #</label>
+            <input id="batch-img-from" type="number" min="1" value="1" class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white" />
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">To Slide #</label>
+            <input id="batch-img-to" type="number" min="1" value="12" class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white" />
+          </div>
+        </div>
+      </div>
+      <div class="px-5 py-3 bg-slate-950/70 border-t border-slate-800 flex justify-end gap-2">
+        <button id="btn-cancel-batch-img" class="px-4 py-1.5 rounded-lg bg-slate-800 text-xs text-slate-300 font-semibold">रद्द करें</button>
+        <button id="btn-run-batch-img" class="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs text-white font-bold">🎨 इमेज बनाना शुरू करें</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PDF EXPORT MODAL ==================== -->
+  <div id="pdf-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-rose-300 flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i> PPT to PDF एक्सपोर्ट</h3>
+        <button id="btn-close-pdf-modal" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+      <div class="p-5 space-y-3">
+        <button id="btn-pdf-vector-print" class="w-full p-3.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-950/70 border border-emerald-500/40 text-left transition space-y-1">
+          <div class="text-xs font-bold text-emerald-300 flex items-center justify-between">
+            <span>⚡ Crisp Print-to-PDF (50+ Pages Best)</span>
+            <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-[10px]">Vector Text</span>
+          </div>
+          <p class="text-[11px] text-slate-300">16:9 लैंडस्केप में अल्ट्रा-शार्प PDF जिसमें हिंदी/इंग्लिश टेक्स्ट सेलेक्टेबल रहता है।</p>
+        </button>
+        <button id="btn-pdf-direct-download" class="w-full p-3.5 rounded-xl bg-rose-950/40 hover:bg-rose-950/70 border border-rose-500/40 text-left transition space-y-1">
+          <div class="text-xs font-bold text-rose-300 flex items-center justify-between">
+            <span>📥 Direct .PDF Download (html2canvas + jsPDF)</span>
+            <span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-[10px]">1-Click File</span>
+          </div>
+          <p class="text-[11px] text-slate-300">सीधे हाई-रिज़ॉल्यूशन .pdf फाइल डाउनलोड करता है।</p>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== GLOBAL PROGRESS MODAL ==================== -->
+  <div id="progress-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 text-center">
+      <div class="w-12 h-12 mx-auto rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+        <div class="w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+      <div>
+        <h3 id="progress-title" class="text-base font-bold text-white">प्रक्रिया चल रही है...</h3>
+        <p id="progress-subtitle" class="text-xs text-slate-300 mt-1">कृपया प्रतीक्षा करें...</p>
+      </div>
+      <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+        <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-indigo-500 via-orange-500 to-emerald-500 transition-all duration-300" style="width: 10%;"></div>
+      </div>
+      <button id="btn-cancel-progress" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/50 border border-slate-700 text-xs font-semibold text-rose-300">रोकें (Stop)</button>
+    </div>
+  </div>
+
+  <!-- ==================== FULL-SCREEN SMART-BOARD PRESENTATION OVERLAY ==================== -->
+  <div id="present-overlay" class="fixed inset-0 bg-black z-50 hidden flex-col items-center justify-center">
+    <div id="present-viewport" class="w-full h-full flex items-center justify-center p-2 sm:p-4 overflow-auto relative">
+      <div id="present-zoom-container" class="transition-transform duration-200 origin-center">
+        <div id="present-scaler-outer" class="relative overflow-hidden shadow-2xl">
+          <div id="present-stage-1280" style="width:1280px;height:720px;transform-origin:top left;position:absolute;top:0;left:0;"></div>
+          <canvas id="smartboard-canvas" class="absolute inset-0 w-full h-full z-20 pointer-events-none"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laser Pointer Dot -->
+    <div id="laser-dot"></div>
+
+    <!-- Smart-Board Floating Control Bar -->
+    <div class="fixed bottom-3 left-1/2 -translate-x-1/2 bg-slate-900/95 border border-slate-700 backdrop-blur-md px-3 sm:px-4 py-2 rounded-2xl flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 shadow-2xl z-30 max-w-[97vw]">
+      <!-- Navigation -->
+      <div class="flex items-center gap-1">
+        <button id="btn-pres-prev" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold">◀</button>
+        <input id="pres-jump-input" type="number" min="1" class="w-11 px-1 py-1 rounded bg-slate-950 border border-slate-700 text-center text-xs font-bold text-orange-300" />
+        <span id="pres-total-label" class="text-xs font-semibold text-slate-400">/ 6</span>
+        <button id="btn-pres-next" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold">▶</button>
+      </div>
+
+      <span class="text-slate-700 hidden sm:inline">|</span>
+
+      <!-- Drawing + Laser Tools -->
+      <div class="flex items-center gap-1">
+        <button id="btn-tool-pointer" class="px-2 py-1 rounded-lg bg-indigo-600 text-white text-xs font-bold" title="Normal Pointer">🖱️</button>
+        <button id="btn-tool-laser" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold" title="Laser Pointer">🔴</button>
+        <button id="btn-tool-pen" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold" title="Pen">✏️</button>
+        <button id="btn-tool-highlighter" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold" title="Highlighter">🖍️</button>
+        <button id="btn-tool-eraser" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold" title="Eraser">🧹</button>
+
+        <div class="flex items-center gap-1 pl-1">
+          <button data-color="#ef4444" class="sb-color-btn w-4 h-4 rounded-full bg-red-500 ring-2 ring-white"></button>
+          <button data-color="#2563eb" class="sb-color-btn w-4 h-4 rounded-full bg-blue-600"></button>
+          <button data-color="#facc15" class="sb-color-btn w-4 h-4 rounded-full bg-yellow-400"></button>
+          <button data-color="#10b981" class="sb-color-btn w-4 h-4 rounded-full bg-emerald-500"></button>
+        </div>
+
+        <button id="btn-tool-clear" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-rose-300 text-xs font-bold">Clear</button>
+      </div>
+
+      <span class="text-slate-700 hidden sm:inline">|</span>
+
+      <!-- Image Zoom Controls (1x / 1.5x / 2x) -->
+      <div class="flex items-center gap-1">
+        <span class="text-[10px] text-slate-400 font-bold hidden sm:inline">Zoom:</span>
+        <button data-zoom="1" class="zoom-btn px-2 py-1 rounded-lg bg-sky-600 text-white text-xs font-bold">1x</button>
+        <button data-zoom="1.5" class="zoom-btn px-2 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold">1.5x</button>
+        <button data-zoom="2" class="zoom-btn px-2 py-1 rounded-lg bg-slate-800 text-slate-200 text-xs font-bold">2x</button>
+      </div>
+
+      <button id="btn-pres-exit" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">Exit (Esc)</button>
+    </div>
+  </div>
+
+  <!-- Offscreen Sandbox & Print Container -->
+  <div id="pdf-render-sandbox"></div>
+  <div id="print-deck-container"></div>
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script>
+    /***************************************************************************
+     * 1. FOUR MASTER THEMES (UP Board Academic Default)
+     ***************************************************************************/
+    const MASTER_THEMES = {
+      'up-board': {
+        id: 'up-board',
+        name: 'UP Board Academic',
+        desc: 'Off-White #F7F8FA • Deep Navy • Coral Dashed',
+        bg: '#F7F8FA',
+        surface: '#FFFFFF',
+        titleColor: '#1E293B',
+        subtitleColor: '#475569',
+        textColor: '#1E293B',
+        mutedColor: '#64748B',
+        accent: '#D96B52',
+        accentSoft: '#FFF5F2',
+        badgeBg: '#E2E8F0',
+        badgeText: '#1E293B',
+        border: '#E2E8F0',
+        tableHeaderBg: '#1E293B',
+        tableHeaderText: '#FFFFFF',
+        tableStripe: '#F1F5F9',
+        titleStyle: 'dashed',
+        calloutExam: { bg: '#FFF1F2', border: '#D96B52', title: '#B91C1C', text: '#334155' },
+        calloutSimple: { bg: '#E0F2FE', border: '#0284C7', title: '#0369A1', text: '#1E293B' },
+        quadColors: ['#2563EB', '#059669', '#7C3AED', '#D97706']
+      },
+      'digital-dark': {
+        id: 'digital-dark',
+        name: 'Digital Board Dark',
+        desc: 'Deep Slate #0F172A • Crisp White • Cyan/Amber',
+        bg: '#0F172A',
+        surface: '#1E293B',
+        titleColor: '#F8FAFC',
+        subtitleColor: '#38BDF8',
+        textColor: '#E2E8F0',
+        mutedColor: '#94A3B8',
+        accent: '#38BDF8',
+        accentSoft: '#16253B',
+        badgeBg: '#1E293B',
+        badgeText: '#FBBF24',
+        border: '#334155',
+        tableHeaderBg: '#0284C7',
+        tableHeaderText: '#FFFFFF',
+        tableStripe: '#172336',
+        titleStyle: 'vertical-bar',
+        calloutExam: { bg: '#3B1D2A', border: '#FB7185', title: '#FDA4AF', text: '#F1F5F9' },
+        calloutSimple: { bg: '#0C2D48', border: '#38BDF8', title: '#7DD3FC', text: '#F1F5F9' },
+        quadColors: ['#38BDF8', '#34D399', '#A78BFA', '#FBBF24']
+      },
+      'clean-modern': {
+        id: 'clean-modern',
+        name: 'Clean White Modern',
+        desc: 'Pure White #FFFFFF • Indigo Vertical Bar',
+        bg: '#FFFFFF',
+        surface: '#F8FAFC',
+        titleColor: '#0F172A',
+        subtitleColor: '#4F46E5',
+        textColor: '#1E293B',
+        mutedColor: '#64748B',
+        accent: '#4F46E5',
+        accentSoft: '#EEF2FF',
+        badgeBg: '#EEF2FF',
+        badgeText: '#3730A3',
+        border: '#E2E8F0',
+        tableHeaderBg: '#3730A3',
+        tableHeaderText: '#FFFFFF',
+        tableStripe: '#EEF2FF',
+        titleStyle: 'vertical-bar',
+        calloutExam: { bg: '#FEF2F2', border: '#E11D48', title: '#BE123C', text: '#1E293B' },
+        calloutSimple: { bg: '#EEF2FF', border: '#4F46E5', title: '#3730A3', text: '#1E293B' },
+        quadColors: ['#4F46E5', '#0891B2', '#059669', '#D97706']
+      },
+      'chalkboard-green': {
+        id: 'chalkboard-green',
+        name: 'Warm Chalkboard Green',
+        desc: 'Classroom Green #112A22 • Chalk White & Gold',
+        bg: '#112A22',
+        surface: '#1A3B30',
+        titleColor: '#FEFCE8',
+        subtitleColor: '#FDE047',
+        textColor: '#F1F5F9',
+        mutedColor: '#A7F3D0',
+        accent: '#FACC15',
+        accentSoft: '#18362C',
+        badgeBg: '#1F473A',
+        badgeText: '#FDE047',
+        border: '#2D5A4B',
+        tableHeaderBg: '#065F46',
+        tableHeaderText: '#FEFCE8',
+        tableStripe: '#16332A',
+        titleStyle: 'dashed',
+        calloutExam: { bg: '#3B2314', border: '#F59E0B', title: '#FDE68A', text: '#FEFCE8' },
+        calloutSimple: { bg: '#133C3B', border: '#34D399', title: '#6EE7B7', text: '#ECFDF5' },
+        quadColors: ['#FACC15', '#34D399', '#38BDF8', '#FB923C']
+      }
+    };
+
+    /***************************************************************************
+     * 2. BUILT-IN VECTOR CLIPARTS (16) & MATH/SCIENCE SYMBOLS
+     ***************************************************************************/
+    const SVG_CLIPARTS = {
+      atom: { label: 'Atom', path: '<circle cx="12" cy="12" r="2"/><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(45 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-45 12 12)"/>' },
+      microscope: { label: 'Lab', path: '<path d="M6 18h8M3 22h18M14 22a7 7 0 1 0 0-14h-1M9 14h2M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/>' },
+      prism: { label: 'Optics', path: '<polygon points="12 3 3 20 21 20 12 3"/><path d="M2 14h6M16 13l6-2M17 16l5 1"/>' },
+      magnet: { label: 'Magnet', path: '<path d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"/>' },
+      dna: { label: 'Biology', path: '<path d="M2 15c6.667-6 13.333 0 20-6M9 22c1.798-1.998 2.518-3.995 2.807-5.993M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/>' },
+      bulb: { label: 'Idea', path: '<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>' },
+      planet: { label: 'Space', path: '<circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="11" ry="3.5" transform="rotate(-22 12 12)"/>' },
+      beaker: { label: 'Chem', path: '<path d="M9 3h6M10 3v6.5L4.5 19a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 9.5V3M7 15h10"/>' },
+      compass: { label: 'Math', path: '<circle cx="12" cy="5" r="2"/><path d="M10.5 6.5 5 21M13.5 6.5 19 21M7 15h10"/>' },
+      chart: { label: 'Graph', path: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>' },
+      book: { label: 'NCERT', path: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>' },
+      trophy: { label: 'Exam', path: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M18 2H6v7a6 6 0 0 0 12 0V2Z"/>' },
+      brain: { label: 'Mind', path: '<path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.54z"/>' },
+      gear: { label: 'Process', path: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3"/>' },
+      scale: { label: 'Measure', path: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10M12 3v18"/>' },
+      circuit: { label: 'Tech', path: '<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4"/>' }
+    };
+
+    const MATH_SYMBOLS = ['×', '÷', '±', '°', '²', '³', '√', 'π', 'Δ', 'θ', 'μ', '→', '∝', '≈'];
+
+    const LANGUAGE_INSTRUCTIONS = {
+      hindi: 'Write strictly in pure, clear, natural Hindi (Devanagari script).',
+      english: 'Write strictly in pure, clear, academic English.',
+      bilingual: 'Write in Bilingual NCERT/UP Board style: explanations in clear Hindi (Devanagari) with important scientific/technical terms in English inside brackets, e.g., प्रकाश संश्लेषण (Photosynthesis), गुरुत्वाकर्षण (Gravitation).',
+      hinglish: 'Write in natural Hinglish (Romanized Hindi mixed with English scientific terms).'
+    };
+
+    /***************************************************************************
+     * 3. STARTER DEMO DECK (Includes Full 16:9 Image + Next Text Focus Pair!)
+     ***************************************************************************/
+    function createStarterSlides() {
+      return [
+        {
+          id: 'v4-1',
+          layout: 'cover',
+          badge: 'UP Board / NCERT पाठ्यक्रम',
+          title: 'भौतिक जगत और मापन (Physical World & Measurement)',
+          subtitle: 'अध्याय 1: कक्षा 11 भौतिकी — Full 16:9 Visual & Smart-Board Edition',
+          intro: 'बड़े 16:9 शैक्षिक डायग्राम, अगले पेज पर विस्तृत व्याख्या, सूत्र-पत्रक और बोर्ड PYQ प्रश्नों के साथ सम्पूर्ण अध्याय।',
+          bullets: [
+            { heading: 'Full 16:9 Visuals', text: 'बड़े डायग्राम + कॉलआउट पिन्स' },
+            { heading: 'Next Text Focus', text: 'सरल भाषा + बोर्ड परीक्षा बिंदु' },
+            { heading: '50+ Page Ready', text: 'IndexedDB ऑटो-सेव + PPTX/PDF' }
+          ],
+          formula: '',
+          table: { headers: ['विषय', 'मुख्य बिंदु'], rows: [['मापन', '7 मूल मात्रक']] },
+          mcq: { question: '', options: ['', '', '', ''], answerIndex: 0, explanation: '' },
+          calloutTitle: '', calloutType: 'simple', calloutText: '',
+          clipart: 'atom',
+          pureImage: false,
+          imageFit: 'contain',
+          pins: [],
+          imagePrompt: 'Clean bright Indian NCERT textbook educational mind map cover illustration for Physical World and Measurement with crisp science icons on soft off-white background',
+          imageCaption: 'अध्याय 1: सम्पूर्ण माइंड मैप एवं विज़ुअलाइज़ेशन',
+          imageData: null
+        },
+        {
+          id: 'v4-2',
+          layout: 'full-image',
+          badge: '16:9 Visual Diagram',
+          title: 'स्थूल जगत बनाम सूक्ष्म जगत (Macrocosm vs Microcosm)',
+          subtitle: 'पूरे 16:9 पेज पर बड़ा चित्र — स्मार्ट बोर्ड पर समझाने के लिए',
+          intro: '',
+          bullets: [],
+          formula: '',
+          table: { headers: ['A', 'B'], rows: [['1', '2']] },
+          mcq: { question: '', options: ['', '', '', ''], answerIndex: 0, explanation: '' },
+          calloutTitle: '', calloutType: 'simple', calloutText: '',
+          clipart: 'planet',
+          pureImage: false,
+          imageFit: 'contain',
+          pins: [
+            { id: 'p1', num: 1, x: 24, y: 38, label: 'स्थूल जगत (10²⁶ m — आकाशगंगाएँ)' },
+            { id: 'p2', num: 2, x: 75, y: 42, label: 'सूक्ष्म जगत (10⁻¹⁵ m — परमाणु नाभिक)' }
+          ],
+          imagePrompt: 'Widescreen 16:9 high-resolution educational textbook infographic comparing Macrocosm (galaxies, solar system, planets on the left) and Microcosm (glowing atomic nucleus, protons, neutrons, orbiting electrons on the right) with a clean scale bar from 10^26 m to 10^-15 m in the middle, crisp NCERT diagram style',
+          imageCaption: 'चित्र 1: ब्रह्मांड के विशाल (स्थूल) और परमाणु के सूक्ष्म स्तरों की तुलना — (AI & इमेज टैब से 16:9 इमेज बनाएं)',
+          imageData: null
+        },
+        {
+          id: 'v4-3',
+          layout: 'text-focus',
+          badge: 'विस्तृत व्याख्या (Next Page)',
+          title: 'स्थूल एवं सूक्ष्म जगत — विस्तृत व्याख्या (Detailed Explanation)',
+          subtitle: 'पिछले 16:9 डायग्राम के मुख्य बिंदुओं को सरल भाषा में समझें',
+          intro: 'भौतिकी के अध्ययन क्षेत्र को वस्तुओं के आकार और ऊर्जा के आधार पर दो प्रमुख भागों में बाँटा गया है—स्थूल जगत (Macroscopic Domain) और सूक्ष्म जगत (Microscopic Domain)।',
+          bullets: [
+            { heading: '1. स्थूल जगत (Macroscopic Domain)', text: 'इसमें प्रयोगशाला, स्थलीय और खगोलीय स्तर की बड़ी घटनाएँ शामिल हैं। इसकी व्याख्या क्लासिकी भौतिकी (Classical Physics — न्यूटन के नियम, ऊष्मागतिकी, प्रकाशिकी) द्वारा की जाती है।' },
+            { heading: '2. सूक्ष्म जगत (Microscopic Domain)', text: 'इसमें परमाणु, अणु, नाभिक और मौलिक कणों (इलेक्ट्रॉन, प्रोटॉन, न्यूट्रॉन) का अध्ययन होता है। इसके लिए क्वांटम भौतिकी (Quantum Physics) का उपयोग किया जाता है।' },
+            { heading: '3. मध्यवर्ती क्षेत्र (Mesoscopic Domain)', text: 'यह स्थूल और सूक्ष्म के बीच का क्षेत्र है, जहाँ दसियों या सैकड़ों परमाणुओं के समूहों (नैनो-प्रौद्योगिकी) का अध्ययन किया जाता है।' }
+          ],
+          formula: 'आकार परास (Length Scale):  सूक्ष्म नाभिक (10⁻¹⁵ m)  →  मानव (10⁰ m)  →  विशाल ब्रह्मांड (10²⁶ m)',
+          table: { headers: ['A', 'B'], rows: [['1', '2']] },
+          mcq: { question: '', options: ['', '', '', ''], answerIndex: 0, explanation: '' },
+          calloutTitle: 'सरल भाषा में समझें / बोर्ड परीक्षा बिंदु',
+          calloutType: 'simple',
+          calloutText: 'जब हम ग्रहों, कारों या मशीनों की गति पढ़ते हैं तो वह स्थूल जगत (क्लासिकी भौतिकी) है, और जब परमाणु या इलेक्ट्रॉन के अंदर झाँकते हैं तो वह सूक्ष्म जगत (क्वांटम भौतिकी) है।',
+          clipart: 'atom',
+          pureImage: false,
+          imageFit: 'contain',
+          pins: [],
+          imagePrompt: '',
+          imageCaption: '',
+          imageData: null
+        },
+        {
+          id: 'v4-4',
+          layout: 'table-visual',
+          badge: 'SI मात्रक प्रणाली',
+          title: '7 मूल राशियाँ एवं SI मात्रक (Base Quantities)',
+          subtitle: 'वे भौतिक राशियाँ जो एक-दूसरे से पूर्णतः स्वतंत्र होती हैं',
+          intro: 'अंतर्राष्ट्रीय मात्रक पद्धति (SI) में 7 मूल राशियाँ निर्धारित हैं। इन्हीं से सभी व्युत्पन्न राशियाँ बनती हैं।',
+          bullets: [],
+          formula: 'Q = n × u   (संख्यात्मक मान × मात्रक)',
+          table: {
+            headers: ['मूल राशि (Quantity)', 'SI मात्रक (Unit)', 'प्रतीक'],
+            rows: [
+              ['1. लंबाई (Length)', 'मीटर (Meter)', 'm'],
+              ['2. द्रव्यमान (Mass)', 'किलोग्राम (Kilogram)', 'kg'],
+              ['3. समय (Time)', 'सेकंड (Second)', 's'],
+              ['4. विद्युत धारा (Current)', 'ऐम्पियर (Ampere)', 'A'],
+              ['5. ऊष्मागतिक ताप', 'केल्विन (Kelvin)', 'K'],
+              ['6. पदार्थ की मात्रा', 'मोल (Mole)', 'mol'],
+              ['7. ज्योति तीव्रता', 'कैंडेला (Candela)', 'cd']
+            ]
+          },
+          mcq: { question: '', options: ['', '', '', ''], answerIndex: 0, explanation: '' },
+          calloutTitle: 'बोर्ड परीक्षा बिंदु (Board Exam Point)',
+          calloutType: 'exam',
+          calloutText: 'प्रकाश वर्ष (Light Year) समय का नहीं, बल्कि खगोलीय दूरी का मात्रक है (1 ly ≈ 9.46 × 10¹⁵ m)।',
+          clipart: 'scale',
+          pureImage: false,
+          imageFit: 'contain',
+          pins: [],
+          imagePrompt: 'Clean colorful NCERT educational chart showing 7 SI base units icons on white background',
+          imageCaption: '7 मूल मात्रकों (SI Base Units) का चार्ट',
+          imageData: null
+        },
+        {
+          id: 'v4-5',
+          layout: 'quiz',
+          badge: 'UP Board / NEET PYQ',
+          title: 'अभ्यास प्रश्न (Practice MCQ)',
+          subtitle: 'सही विकल्प चुनें और डिजिटल बोर्ड पर उत्तर की जाँच करें',
+          intro: '',
+          bullets: [],
+          formula: '',
+          table: { headers: ['A', 'B'], rows: [['1', '2']] },
+          mcq: {
+            question: 'प्रश्न: निम्नलिखित में से कौन-सा "बल (Force)" का सही विमीय सूत्र (Dimensional Formula) है?',
+            options: ['[M L T⁻¹]', '[M L T⁻²]', '[M L² T⁻²]', '[M L⁻¹ T⁻²]'],
+            answerIndex: 1,
+            explanation: 'बल (F) = द्रव्यमान (m) × त्वरण (a) = [M] × [L T⁻²] = [M L T⁻²]। इसका SI मात्रक न्यूटन (N) है।'
+          },
+          calloutTitle: '', calloutType: 'simple', calloutText: '',
+          clipart: 'trophy',
+          pureImage: false,
+          imageFit: 'contain',
+          pins: [],
+          imagePrompt: '',
+          imageCaption: '',
+          imageData: null
+        }
+      ];
+    }
+
+    /***************************************************************************
+     * 4. STATE & INDEXEDDB PERSISTENCE
+     ***************************************************************************/
+    const state = {
+      themeId: 'up-board',
+      footerText: 'अध्याय 1: भौतिक जगत और मापन — कक्षा 11 भौतिकी (UP Board / NCERT)',
+      pageLabel: 'पृष्ठ',
+      fontScale: 100,
+      activeIndex: 0,
+      slides: createStarterSlides()
+    };
+
+    const IDB_NAME = 'AIPPTStudioV4DB';
+    const IDB_STORE = 'projects';
+    const IDB_KEY = 'active_deck_v4';
+    let saveTimer = null;
+    let cancelRequested = false;
+    let aiModalMode = 'batch';
+    let lastFocusedField = null;
+    let mcqAnswerVisible = false;
+
+    function openIDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          if (!e.target.result.objectStoreNames.contains(IDB_STORE)) {
+            e.target.result.createObjectStore(IDB_STORE);
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function saveStateToIDB() {
+      try {
+        const db = await openIDB();
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(state, IDB_KEY);
+        tx.oncomplete = () => {
+          const b = document.getElementById('db-save-badge');
+          if (b) b.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Saved (${state.slides.length} Slides)`;
+        };
+      } catch (e) {}
+    }
+
+    function scheduleAutoSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveStateToIDB, 400);
+    }
+
+    async function loadStateFromIDB() {
+      try {
+        const db = await openIDB();
+        return await new Promise((resolve) => {
+          const tx = db.transaction(IDB_STORE, 'readonly');
+          const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    /***************************************************************************
+     * 5. UTILITIES
+     ***************************************************************************/
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const styles = {
+        info: 'bg-slate-800 border-indigo-500 text-white',
+        success: 'bg-emerald-900/95 border-emerald-400 text-emerald-50',
+        error: 'bg-rose-900/95 border-rose-400 text-rose-50'
+      };
+      el.className = `toast-anim px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-2xl pointer-events-auto max-w-sm ${styles[type] || styles.info}`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.25s ease';
+        setTimeout(() => el.remove(), 260);
+      }, 3400);
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function getClipartSvg(key, color, sizeClass = 'w-20 h-20') {
+      const item = SVG_CLIPARTS[key] || SVG_CLIPARTS.atom;
+      return `<svg class="${sizeClass}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${item.path}</svg>`;
+    }
+
+    function openProgress(title, subtitle, pct = 10) {
+      cancelRequested = false;
+      document.getElementById('progress-title').textContent = title;
+      document.getElementById('progress-subtitle').textContent = subtitle;
+      document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+      const m = document.getElementById('progress-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function updateProgress(subtitle, pct) {
+      document.getElementById('progress-subtitle').textContent = subtitle;
+      document.getElementById('progress-bar-fill').style.width = `${Math.min(100, Math.max(5, pct))}%`;
+    }
+
+    function closeProgress() {
+      const m = document.getElementById('progress-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function buildFallbackDiagramDataURL(slide, theme) {
+      const titleSafe = escapeHtml((slide.title || '16:9 Educational Diagram').slice(0, 46));
+      const capSafe = escapeHtml((slide.imageCaption || 'Visual Concept Diagram').slice(0, 62));
+      const accent = theme.accent;
+      const bg = theme.bg;
+      const txt = theme.titleColor;
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+          <rect width="1280" height="720" fill="${bg}"/>
+          <rect x="40" y="40" width="1200" height="640" rx="28" fill="${accent}" fill-opacity="0.07" stroke="${accent}" stroke-width="3" stroke-dasharray="14 8"/>
+          <circle cx="640" cy="310" r="130" fill="${accent}" fill-opacity="0.14" stroke="${accent}" stroke-width="4"/>
+          <circle cx="320" cy="240" r="46" fill="#0284C7" fill-opacity="0.2" stroke="#0284C7" stroke-width="3"/>
+          <circle cx="960" cy="240" r="46" fill="#059669" fill-opacity="0.2" stroke="#059669" stroke-width="3"/>
+          <circle cx="350" cy="430" r="40" fill="#D97706" fill-opacity="0.2" stroke="#D97706" stroke-width="3"/>
+          <circle cx="930" cy="430" r="40" fill="#7C3AED" fill-opacity="0.2" stroke="#7C3AED" stroke-width="3"/>
+          <line x1="366" y1="252" x2="515" y2="290" stroke="${accent}" stroke-width="3"/>
+          <line x1="914" y1="252" x2="765" y2="290" stroke="${accent}" stroke-width="3"/>
+          <line x1="390" y1="415" x2="520" y2="365" stroke="${accent}" stroke-width="3"/>
+          <line x1="890" y1="415" x2="760" y2="365" stroke="${accent}" stroke-width="3"/>
+          <text x="640" y="320" text-anchor="middle" font-family="sans-serif" font-size="30" font-weight="800" fill="${txt}">16:9 VISUAL</text>
+          <text x="640" y="555" text-anchor="middle" font-family="sans-serif" font-size="32" font-weight="800" fill="${txt}">${titleSafe}</text>
+          <text x="640" y="605" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#64748B">${capSafe}</text>
+        </svg>`;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    /***************************************************************************
+     * 6. GEMINI API CLIENT (Text JSON + 16:9 Image Gen with Backoff)
+     ***************************************************************************/
+    async function fetchWithRetry(url, payload, maxRetries = 4) {
+      let delay = 1000;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            if (res.status === 429 || res.status >= 500) throw new Error(`HTTP ${res.status}`);
+            const errTxt = await res.text();
+            throw new Error(errTxt || `HTTP ${res.status}`);
+          }
+          return await res.json();
+        } catch (err) {
+          if (attempt === maxRetries) throw err;
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
+        }
+      }
+    }
+
+    async function callGeminiJSON(promptText, schema) {
+      const apiKey = "";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: { responseMimeType: "application/json", responseSchema: schema }
+      };
+      const result = await fetchWithRetry(url, payload);
+      const txt = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!txt) throw new Error('Empty AI response');
+      return JSON.parse(txt);
+    }
+
+    async function callGeminiImageGen(imagePrompt, aspectRatio = "16:9") {
+      const apiKey = "";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{
+          role: 'user',
+          parts: [{ text: `${imagePrompt}. Crisp, vibrant, high-resolution educational textbook diagram / scientific infographic, clean layout, sharp labels, no watermarks.` }]
+        }],
+        generationConfig: {
+          responseModalities: ['IMAGE'],
+          imageConfig: { aspectRatio }
+        }
+      };
+      const result = await fetchWithRetry(url, payload, 3);
+      const part = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+      if (!part?.inlineData?.data) throw new Error('No image data');
+      return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+    }
+
+    const SLIDE_SCHEMA = {
+      type: "OBJECT",
+      properties: {
+        layout: { type: "STRING", enum: ["cover", "full-image", "text-focus", "split-visual", "simple-box", "table-visual", "formula", "steps", "quiz", "mindmap"] },
+        badge: { type: "STRING" },
+        title: { type: "STRING" },
+        subtitle: { type: "STRING" },
+        intro: { type: "STRING" },
+        bullets: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: { heading: { type: "STRING" }, text: { type: "STRING" } },
+            required: ["heading", "text"]
+          }
+        },
+        formula: { type: "STRING" },
+        table: {
+          type: "OBJECT",
+          properties: {
+            headers: { type: "ARRAY", items: { type: "STRING" } },
+            rows: { type: "ARRAY", items: { type: "ARRAY", items: { type: "STRING" } } }
+          },
+          required: ["headers", "rows"]
+        },
+        mcq: {
+          type: "OBJECT",
+          properties: {
+            question: { type: "STRING" },
+            options: { type: "ARRAY", items: { type: "STRING" } },
+            answerIndex: { type: "INTEGER" },
+            explanation: { type: "STRING" }
+          },
+          required: ["question", "options", "answerIndex", "explanation"]
+        },
+        calloutTitle: { type: "STRING" },
+        calloutType: { type: "STRING", enum: ["exam", "simple"] },
+        calloutText: { type: "STRING" },
+        clipart: { type: "STRING" },
+        imagePrompt: { type: "STRING" },
+        imageCaption: { type: "STRING" }
+      },
+      required: ["layout", "badge", "title", "subtitle", "intro", "bullets", "formula", "table", "mcq", "calloutTitle", "calloutType", "calloutText", "clipart", "imagePrompt", "imageCaption"]
+    };
+
+    function normalizeSlide(raw, idx = 0) {
+      return {
+        id: raw.id || `s-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+        layout: raw.layout || 'split-visual',
+        badge: raw.badge || '',
+        title: raw.title || '',
+        subtitle: raw.subtitle || '',
+        intro: raw.intro || '',
+        bullets: Array.isArray(raw.bullets) ? raw.bullets : [],
+        formula: raw.formula || '',
+        table: raw.table || { headers: ['विषय', 'विवरण'], rows: [['बिंदु 1', 'मान 1']] },
+        mcq: raw.mcq || { question: '', options: ['', '', '', ''], answerIndex: 0, explanation: '' },
+        calloutTitle: raw.calloutTitle || '',
+        calloutType: raw.calloutType || 'exam',
+        calloutText: raw.calloutText || '',
+        clipart: SVG_CLIPARTS[raw.clipart] ? raw.clipart : 'atom',
+        pureImage: Boolean(raw.pureImage),
+        imageFit: raw.imageFit === 'cover' ? 'cover' : 'contain',
+        pins: Array.isArray(raw.pins) ? raw.pins : [],
+        imagePrompt: raw.imagePrompt || '',
+        imageCaption: raw.imageCaption || '',
+        imageData: raw.imageData || null
+      };
+    }
+
+    /***************************************************************************
+     * 7. SLIDE HTML RENDERER (All 10 Layouts including Full 16:9 Image & Text Focus)
+     ***************************************************************************/
+    function buildSlideHTML(slide, index, total, interactive = true, showMcqAns = true) {
+      const theme = MASTER_THEMES[state.themeId] || MASTER_THEMES['up-board'];
+      const s = state.fontScale / 100;
+      const ce = interactive ? 'contenteditable="true"' : '';
+
+      const renderHeader = (centered = false) => {
+        if (centered) {
+          return `
+            <div class="px-12 pt-7 pb-3 text-center relative shrink-0">
+              ${slide.badge ? `<div class="absolute right-11 top-7 px-3.5 py-1 rounded-full text-xs font-bold" style="background:${theme.badgeBg}; color:${theme.badgeText}; border:1px solid ${theme.border};" ${ce} data-field="badge">${escapeHtml(slide.badge)}</div>` : ''}
+              <h2 class="font-extrabold leading-tight" style="font-size:${34 * s}px; color:${theme.accent};" ${ce} data-field="title">${escapeHtml(slide.title)}</h2>
+              ${slide.subtitle ? `<p class="font-bold mt-1" style="font-size:${18 * s}px; color:${theme.titleColor};" ${ce} data-field="subtitle">${escapeHtml(slide.subtitle)}</p>` : ''}
+            </div>`;
+        }
+        const titleBlock = theme.titleStyle === 'vertical-bar'
+          ? `<div class="flex items-center gap-4">
+               <div class="w-2 h-11 rounded-full shrink-0" style="background:${theme.accent};"></div>
+               <div>
+                 <h2 class="font-extrabold leading-tight" style="font-size:${30 * s}px; color:${theme.titleColor};" ${ce} data-field="title">${escapeHtml(slide.title)}</h2>
+                 ${slide.subtitle ? `<p class="font-medium mt-0.5" style="font-size:${15.5 * s}px; color:${theme.subtitleColor};" ${ce} data-field="subtitle">${escapeHtml(slide.subtitle)}</p>` : ''}
+               </div>
+             </div>`
+          : `<div>
+               <h2 class="font-extrabold leading-tight" style="font-size:${30 * s}px; color:${theme.titleColor};" ${ce} data-field="title">${escapeHtml(slide.title)}</h2>
+               <div class="mt-2 w-28" style="border-bottom:3px dashed ${theme.accent};"></div>
+               ${slide.subtitle ? `<p class="font-semibold mt-1.5" style="font-size:${15.5 * s}px; color:${theme.subtitleColor};" ${ce} data-field="subtitle">${escapeHtml(slide.subtitle)}</p>` : ''}
+             </div>`;
+
+        return `
+          <div class="px-11 pt-7 pb-3 flex items-start justify-between gap-6 shrink-0">
+            <div class="min-w-0 flex-1">${titleBlock}</div>
+            ${slide.badge ? `<div class="px-4 py-1.5 rounded-full text-xs font-bold shrink-0 shadow-sm" style="background:${theme.badgeBg}; color:${theme.badgeText}; border:1px solid ${theme.border};" ${ce} data-field="badge">${escapeHtml(slide.badge)}</div>` : ''}
+          </div>`;
+      };
+
+      const renderFooter = () => `
+        <div class="px-11 py-3 flex items-center justify-between text-xs shrink-0" style="border-top:1px solid ${theme.border}; color:${theme.mutedColor};">
+          <span class="font-medium truncate max-w-[900px]">${escapeHtml(state.footerText)}</span>
+          <span class="font-bold">${escapeHtml(state.pageLabel)} ${index + 1} / ${total}</span>
+        </div>`;
+
+      const renderVisualFrame = (heightPx = 410) => {
+        const inner = slide.imageData
+          ? `<img src="${slide.imageData}" alt="${escapeHtml(slide.imageCaption || slide.title)}" class="w-full h-full object-contain rounded-xl" />`
+          : `<div class="w-full h-full flex flex-col items-center justify-center text-center p-6 gap-3 rounded-xl" style="background:${theme.accentSoft}; border:2px dashed ${theme.accent}55;">
+               <div class="w-24 h-24 rounded-2xl flex items-center justify-center" style="background:${theme.accent}18;">
+                 ${getClipartSvg(slide.clipart, theme.accent, 'w-14 h-14')}
+               </div>
+               <div class="font-bold text-sm" style="color:${theme.titleColor};">${escapeHtml(slide.imageCaption || 'AI Educational Diagram')}</div>
+               <div class="text-xs max-w-[260px]" style="color:${theme.mutedColor};">AI &amp; इमेज टैब से 1 क्लिक में इमेज बनाएं या अपलोड करें</div>
+             </div>`;
+        return `
+          <div class="h-full flex flex-col justify-center gap-2">
+            <div class="w-full rounded-2xl p-3 flex items-center justify-center shadow-md overflow-hidden" style="height:${heightPx}px; background:${theme.surface}; border:1.5px solid ${theme.border};">
+              ${inner}
+            </div>
+            ${slide.imageCaption ? `<div class="text-center font-semibold italic px-2 truncate" style="font-size:${13.5 * s}px; color:${theme.mutedColor};" ${ce} data-field="imageCaption">${escapeHtml(slide.imageCaption)}</div>` : ''}
+          </div>`;
+      };
+
+      const renderFormula = () => {
+        if (!slide.formula || !slide.formula.trim()) return '';
+        return `<div class="px-5 py-3 rounded-xl font-bold shadow-sm" style="background:${theme.accentSoft}; border-left:5px solid ${theme.accent}; border-top:1px solid ${theme.border}; border-right:1px solid ${theme.border}; border-bottom:1px solid ${theme.border}; color:${theme.titleColor}; font-size:${16 * s}px;" ${ce} data-field="formula">${escapeHtml(slide.formula)}</div>`;
+      };
+
+      const renderCallout = () => {
+        if (!slide.calloutText || !slide.calloutText.trim()) return '';
+        const st = slide.calloutType === 'simple' ? theme.calloutSimple : theme.calloutExam;
+        const icon = slide.calloutType === 'simple' ? '💡' : '📌';
+        return `
+          <div class="px-5 py-3.5 rounded-xl shadow-sm" style="background:${st.bg}; border-left:5px solid ${st.border};">
+            <div class="font-bold flex items-center gap-1.5 mb-0.5" style="font-size:${15 * s}px; color:${st.title};" ${ce} data-field="calloutTitle">
+              <span>${icon}</span><span>${escapeHtml(slide.calloutTitle || (slide.calloutType === 'simple' ? 'सरल भाषा में समझें' : 'बोर्ड परीक्षा बिंदु (Board Exam Point)'))}</span>
+            </div>
+            <div class="leading-snug font-medium" style="font-size:${14 * s}px; color:${st.text};" ${ce} data-field="calloutText">${escapeHtml(slide.calloutText)}</div>
+          </div>`;
+      };
+
+      const renderBullets = (maxItems = 4, large = false) => `
+        <div class="${large ? 'space-y-4' : 'space-y-3'}">
+          ${(slide.bullets || []).slice(0, maxItems).map((b, bi) => `
+            <div class="flex items-start gap-3.5">
+              <div class="mt-0.5 ${large ? 'w-7 h-7 text-sm' : 'w-6 h-6 text-xs'} rounded-lg flex items-center justify-center font-extrabold text-white shrink-0 shadow-sm" style="background:${theme.accent};">${bi + 1}</div>
+              <div class="flex-1 leading-relaxed" style="font-size:${(large ? 18 : 15.5) * s}px; color:${theme.textColor};">
+                ${b.heading ? `<span class="font-extrabold" style="color:${theme.titleColor};" ${ce} data-field="bulletHeading" data-idx="${bi}">${escapeHtml(b.heading)}</span>: ` : ''}
+                <span ${ce} data-field="bulletText" data-idx="${bi}">${escapeHtml(b.text)}</span>
+              </div>
+            </div>`).join('')}
+        </div>`;
+
+      // ==================== 1. FULL 16:9 IMAGE SLIDE (NEW IN v4!) ====================
+      if (slide.layout === 'full-image') {
+        const fitClass = slide.imageFit === 'cover' ? 'object-cover' : 'object-contain';
+        const pure = Boolean(slide.pureImage);
+
+        const pinsHTML = (slide.pins || []).map((pin, pi) => `
+          <div class="callout-pin" data-pin-idx="${pi}" style="left:${pin.x}%; top:${pin.y}%;">
+            <div class="callout-pin-dot">${pin.num || pi + 1}</div>
+            ${pin.label ? `<div class="callout-pin-label">${escapeHtml(pin.label)}</div>` : ''}
+          </div>`).join('');
+
+        const mainVisual = slide.imageData
+          ? `<img src="${slide.imageData}" alt="${escapeHtml(slide.imageCaption || slide.title)}" class="w-full h-full ${fitClass} block" />`
+          : `<div class="w-full h-full flex flex-col items-center justify-center text-center p-12 gap-5" style="background:${theme.bg};">
+               <div class="w-32 h-32 rounded-3xl flex items-center justify-center shadow-inner" style="background:${theme.accent}18; border:2.5px dashed ${theme.accent};">
+                 ${getClipartSvg(slide.clipart, theme.accent, 'w-16 h-16')}
+               </div>
+               <div class="font-extrabold text-3xl max-w-2xl" style="color:${theme.titleColor};">${escapeHtml(slide.title || 'Full 16:9 Educational Diagram')}</div>
+               <div class="text-base max-w-xl leading-relaxed" style="color:${theme.mutedColor};">यह <b>Full 16:9 Image Slide</b> है। दाईं ओर <b>"AI &amp; इमेज"</b> टैब में जाकर <b>"🎨 इस पेज की 16:9 इमेज बनाएं"</b> या <b>"अपलोड इमेज"</b> पर क्लिक करें।</div>
+             </div>`;
+
+        return `
+          <div class="w-full h-full relative overflow-hidden" style="background:${pure ? '#000000' : theme.bg};">
+            <!-- Edge-to-Edge 16:9 Image Layer -->
+            <div class="absolute inset-0 w-full h-full flex items-center justify-center">
+              ${mainVisual}
+            </div>
+
+            <!-- Draggable Numbered Callout Pins Layer -->
+            ${pinsHTML}
+
+            ${!pure ? `
+              <!-- Sleek Translucent Top Title Bar -->
+              <div class="absolute top-4 left-6 right-6 z-20 flex items-center justify-between gap-4 px-5 py-2.5 rounded-2xl shadow-lg" style="background:rgba(15, 23, 42, 0.78); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.16);">
+                <div class="min-w-0 flex-1">
+                  <div class="font-extrabold text-white truncate" style="font-size:${22 * s}px;" ${ce} data-field="title">${escapeHtml(slide.title)}</div>
+                </div>
+                ${slide.badge ? `<span class="px-3 py-1 rounded-full text-xs font-bold shrink-0" style="background:${theme.accent}; color:#ffffff;" ${ce} data-field="badge">${escapeHtml(slide.badge)}</span>` : ''}
+              </div>
+
+              <!-- Sleek Translucent Bottom Caption & Page Pill -->
+              <div class="absolute bottom-4 left-6 right-6 z-20 flex items-center justify-between gap-4 px-5 py-2 rounded-2xl shadow-lg" style="background:rgba(15, 23, 42, 0.78); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.16);">
+                <div class="text-slate-100 font-semibold truncate flex-1" style="font-size:${14 * s}px;" ${ce} data-field="imageCaption">${escapeHtml(slide.imageCaption || state.footerText)}</div>
+                <span class="text-amber-300 font-bold text-xs shrink-0">${escapeHtml(state.pageLabel)} ${index + 1} / ${total}</span>
+              </div>
+            ` : ''}
+          </div>`;
+      }
+
+      // ==================== 2. FULL-WIDTH TEXT EXPLANATION (`text-focus` — Pairs after `full-image`) ====================
+      if (slide.layout === 'text-focus') {
+        return `
+          <div class="w-full h-full flex flex-col justify-between" style="background:${theme.bg}; color:${theme.textColor};">
+            ${renderHeader(false)}
+            <div class="flex-1 px-12 pb-5 flex flex-col justify-between gap-4 overflow-hidden">
+              <div class="space-y-4 overflow-hidden">
+                ${slide.intro ? `<div class="p-4 rounded-2xl leading-relaxed font-semibold shadow-sm" style="background:${theme.surface}; border:1.5px solid ${theme.border}; font-size:${17.5 * s}px; color:${theme.titleColor};" ${ce} data-field="intro">${escapeHtml(slide.intro)}</div>` : ''}
+                ${renderBullets(5, true)}
+                ${renderFormula()}
+              </div>
+              ${renderCallout()}
+            </div>
+            ${renderFooter()}
+          </div>`;
+      }
+
+      // ==================== 3. COVER SLIDE ====================
+      if (slide.layout === 'cover') {
+        return `
+          <div class="w-full h-full flex flex-col justify-between relative overflow-hidden" style="background:${theme.bg}; color:${theme.textColor};">
+            <div class="absolute -right-24 -top-24 w-[430px] h-[430px] rounded-full pointer-events-none" style="border:34px solid ${theme.border}; opacity:0.5;"></div>
+            <div class="w-full h-2 shrink-0" style="background:linear-gradient(90deg, ${theme.accent}, ${theme.tableHeaderBg});"></div>
+            <div class="flex-1 px-14 py-8 grid grid-cols-12 gap-10 items-center z-10">
+              <div class="col-span-7 flex flex-col justify-center gap-5">
+                ${slide.badge ? `<div class="inline-flex self-start px-4 py-1.5 rounded-full text-sm font-bold shadow-sm" style="background:${theme.badgeBg}; color:${theme.badgeText}; border:1px solid ${theme.border};" ${ce} data-field="badge">📘 ${escapeHtml(slide.badge)}</div>` : ''}
+                <div>
+                  <h1 class="font-extrabold leading-tight" style="font-size:${45 * s}px; color:${theme.titleColor};" ${ce} data-field="title">${escapeHtml(slide.title)}</h1>
+                  <div class="mt-4 w-44" style="border-bottom:4px dashed ${theme.accent};"></div>
+                </div>
+                <p class="font-bold leading-snug" style="font-size:${20 * s}px; color:${theme.accent};" ${ce} data-field="subtitle">${escapeHtml(slide.subtitle)}</p>
+                ${slide.intro ? `<p class="leading-relaxed" style="font-size:${16 * s}px; color:${theme.mutedColor};" ${ce} data-field="intro">${escapeHtml(slide.intro)}</p>` : ''}
+                <div class="flex flex-wrap gap-2.5 pt-1">
+                  ${(slide.bullets || []).slice(0, 3).map((b, bi) => `
+                    <div class="px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm" style="background:${theme.surface}; border:1px solid ${theme.border}; color:${theme.titleColor};">
+                      <span style="color:${theme.accent};">●</span> <span ${ce} data-field="bulletHeading" data-idx="${bi}">${escapeHtml(b.heading || b.text)}</span>
+                    </div>`).join('')}
+                </div>
+              </div>
+              <div class="col-span-5">${renderVisualFrame(420)}</div>
+            </div>
+            ${renderFooter()}
+          </div>`;
+      }
+
+      // ==================== 4. SPLIT VISUAL ====================
+      if (slide.layout === 'split-visual') {
+        return `
+          <div class="w-full h-full flex flex-col justify-between" style="background:${theme.bg}; color:${theme.textColor};">
+            ${renderHeader(false)}
+            <div class="flex-1 px-11 pb-4 grid grid-cols-12 gap-8 items-stretch overflow-hidden">
+              <div class="col-span-7 flex flex-col justify-between gap-3 overflow-hidden">
+                <div class="space-y-3.5 overflow-hidden">
+                  ${slide.intro ? `<p class="leading-relaxed font-medium" style="font-size:${15.5 * s}px;" ${ce} data-field="intro">${escapeHtml(slide.intro)}</p>` : ''}
+                  ${renderBullets(4)}
+                  ${renderFormula()}
+                </div>
+                ${renderCallout()}
+              </div>
+              <div class="col-span-5 h-full">${renderVisualFrame(410)}</div>
+            </div>
+            ${renderFooter()}
+          </div>`;
+      }
+
+      // ==================== 5. SIMPLE BOX ====================
+      if (slide.layout === 'simple-box') {
+        return `
+          <div class="w-full h-full flex flex-col justify-between" style="background:${theme.bg}; color:${theme.textColor};">
+            ${renderHeader(true)}
+            <div class="flex-1 px-11 pb-4 grid grid-cols-12 gap-9 items-center overflow-hidden">
+              <div class="col-span-6">${renderVisualFrame(430)}</div>
+              <div class="col-span-6 flex flex-col justify-between gap-4 h-full py-2 overflow-hidden">
+                <div class="space-y-3.5">
+                  <p class="leading-relaxed font-medium" style="font-size:${16.5 * s}px;" ${ce} data-field="intro">${escapeHtml(slide.intro)}</p>
+                  ${renderFormula()}
+                </div>
+                ${renderCallout()}
+              </div>
+            </div>
+            ${renderFooter()}
+          </div>`;
+      }
+
+      // ==================== 6. TABLE VISUAL ====================
+      if (slide.layout === 'table-visual') {
+        const tbl = slide.table || { headers: ['विषय', 'विवरण'], rows: [['बिंदु 1', 'मान 1']] };
+        const tableHTML = `
+          <div class="rounded-xl overflow-hidden shadow-sm" style="border:1px solid ${theme.border};">
+            <table class="w-full border-collapse text-left" style="font-size:${13.8 * s}px;">
+              <thead>
+                <tr style="background:${theme.tableHeaderBg}; color:${theme.tableHeaderText};">
+                  ${(tbl.headers || []).map((h, hi) => `<th class="px-3 py-2 font-bold" ${ce} data-field="tableHeader" data-col="${hi}">${escapeHtml(h)}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${(tbl.rows || []).map((row, ri) => `
+                  <tr style="background:${ri % 2 === 1 ? theme.tableStripe : theme.surface}; border-top:1px solid ${theme.border};">
+                    ${row.map((cell, ci) => `<td class="px-3 py-1.5 font-medium" style="color:${theme.textColor};" ${ce} data-field="tableCell" data-row="${ri}" data-col="${ci}">${escapeHtml(cell)}</td>`).join('')}
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+        return `
+          <div class="w-full h-full flex flex-col justify-between" style="background:${theme.bg}; color:${theme.textColor};">
+            ${renderHeader(false)}
+            <div class="flex-1 px-11 pb-4 grid grid-cols-12 gap-8 items-stretch overflow-hidden">
+              <div class="col-span-7 flex flex-col justify-between gap-2.5 overflow-hidden">
+                <div class="space-y-2.5 overflow-hidden">
+                  ${slide.intro ? `<p class="leading-snug font-medium" style="font-size:${14.8 * s}px;" ${ce} data-field="intro">${escapeHtml(slide.intro)}</p>` : ''}
+                  ${tableHTML}
+                  ${renderFormula()}
+                </div>
+                ${renderCallout()}
+              </div>
+              <div class="col-span-5 h-full">${renderVisualFrame(410)}</div>
+            </div>
+            ${renderFooter()}
+          </div>`;
+      }
+
+      // ==================== 7. FORMULA SHEET ====================
+      if (slide.layout === 'formula') {
+        const cards = (slide.bullets || []).slice(0, 4);
+        return `
+          <div class="w-full h-full flex flex-col justify-between" style="background:${theme.bg}; color:${theme.textColor};">
+            ${renderHeader(false)}
+            <div class="flex-1 px-11 pb-4 grid grid-cols-12 gap-7 items-stretch overflow-hidden">
+              <div class="col-span-8 flex flex-col justify-between gap-3 overflow-hidden">
+                ${renderFormula()}
+                <div class="grid grid-cols-2 gap-3 flex-1">
+                  ${cards.map((b, bi) => `
+                    <div class="p-4 rounded-xl shadow-sm flex flex-col justify-between gap-1.5" style="background:${theme.surface}; border:1.5px solid ${theme.border}; border-left:5px solid ${theme.quadColors[bi % 4]};">
+                      <div class="font-extrabold" style="font-size:${15 * s}px; color:${theme.quadColors[bi % 4]};" ${ce} data-field="bulletHeading" data-idx="${bi}">${escapeHtml(b.heading || 'सूत्र ' + (bi + 1))}</div>
+                      <div class="font-semibold leading-snug flex-1" style="font-size:${14.5 * s}px;" ${ce} data-field="bulletText" data-idx="${bi}">${escapeHtml(b.text)}</div>
+                    </div>`).join('')}
+                </div>
+                ${renderCallout()}
+              </div>
+              <div class="col-span-4 h-full">${renderVisualFrame(410)}</div>
+            </div>
+            ${renderFooter()}
+          </div>`;
+      }
+
+      // ==================== 8. STEPS TIMELINE ====================
+      if (slide.layout === 'steps') {
+        const steps = (slide.bullets || []).slice(0, 4);
+        return `
+          <div class="w-full h-full flex flex-col justify-between" style="background:${theme.bg}; color:${theme.textColor};">
+            ${renderHeader(false)}
+            <div class="flex-1 px-11 pb-4 flex flex-col justify-between gap-4 overflow-hidden">
+              ${slide.intro ? `<p class="font-medium leading-snug" style="font-size:${15.5 * s}px;" ${ce} data-field="intro">${escapeHtml(slide.intro)}</p>` : ''}
+              <div class="grid grid-cols-4 gap-4 flex-1 items-stretch">
+                ${steps.map((b, bi) => `
+                  <div class="rounded-2xl p-4 flex flex-col gap-2.5 shadow-sm" style="background:${theme.surface}; border:1.5px solid ${theme.border}; border-top:6px solid ${theme.quadColors[bi % 4]};">
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-base font-extrabold text-white shadow" style="background:${theme.quadColors[bi % 4]};">${bi + 1}</div>
+                    <div class="font-bold leading-snug" style="font-size:${16 * s}px; color:${theme.titleColor};" ${ce} data-field="bulletHeading" data-idx="${bi}">${escapeHtml(b.heading || 'चरण ' + (bi + 1))}</div>
+                    <p class="leading-relaxed flex-1" style="font-size:${14 * s}px; color:${theme.mutedColor};" ${ce} data-field="bulletText" data-idx="${bi}">${escapeHtml(b.text)}</p>
+                  </div>`).join('')}
+              </div>
+              ${renderCallout()}
+            </div>
+            ${renderFooter()}
+          </div>`;
+      }
+
+      // ==================== 9. QUIZ MCQ ====================
+      if (slide.layout === 'quiz') {
+        const q = slide.mcq || { question: 'प्रश्न लिखें...', options: ['A', 'B', 'C', 'D'], answerIndex: 0, explanation: '' };
+        const letters = ['A', 'B', 'C', 'D'];
+        return `
+          <div class="w-full h-full flex flex-col justify-between" style="background:${theme.bg}; color:${theme.textColor};">
+            ${renderHeader(false)}
+            <div class="flex-1 px-11 pb-4 flex flex-col justify-between gap-4 overflow-hidden">
+              <div class="p-5 rounded-2xl shadow-sm" style="background:${theme.surface}; border:1.5px solid ${theme.border}; border-left:6px solid ${theme.accent};">
+                <div class="font-bold leading-snug" style="font-size:${20 * s}px; color:${theme.titleColor};" ${ce} data-field="mcqQuestion">${escapeHtml(q.question)}</div>
+              </div>
+              <div class="grid grid-cols-2 gap-3.5">
+                ${(q.options || ['A', 'B', 'C', 'D']).slice(0, 4).map((opt, oi) => {
+                  const ok = showMcqAns && oi === Number(q.answerIndex);
+                  return `
+                    <div class="p-4 rounded-xl flex items-center gap-3.5 shadow-sm" style="background:${ok ? '#DCFCE7' : theme.surface}; border:2px solid ${ok ? '#16A34A' : theme.border};">
+                      <span class="w-8 h-8 rounded-lg flex items-center justify-center font-extrabold text-sm shrink-0" style="background:${ok ? '#16A34A' : theme.badgeBg}; color:${ok ? '#FFFFFF' : theme.badgeText};">${letters[oi]}</span>
+                      <span class="font-semibold flex-1" style="font-size:${16 * s}px; color:${ok ? '#14532D' : theme.textColor};" ${ce} data-field="mcqOpt" data-idx="${oi}">${escapeHtml(opt)}</span>
+                      ${ok ? '<span class="text-emerald-700 font-extrabold text-lg">✔</span>' : ''}
+                    </div>`;
+                }).join('')}
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex-1">
+                  ${showMcqAns ? `
+                    <div class="px-4 py-3 rounded-xl shadow-sm" style="background:#DCFCE7; border-left:5px solid #16A34A; color:#14532D;">
+                      <div class="font-extrabold text-sm">✅ सही उत्तर: (${letters[q.answerIndex] || 'A'})</div>
+                      <div class="text-sm font-medium mt-0.5" ${ce} data-field="mcqExp">${escapeHtml(q.explanation)}</div>
+                    </div>` : `
+                    <div class="px-4 py-3 rounded-xl text-sm font-semibold" style="background:${theme.surface}; border:1.5px dashed ${theme.border}; color:${theme.mutedColor};">
+                      उत्तर छिपा हुआ है — दिखाने के लिए बटन दबाएं।
+                    </div>`}
+                </div>
+                <button onclick="toggleMcqAnswer()" class="px-4 py-2.5 rounded-xl font-bold text-xs text-white shadow shrink-0 cursor-pointer" style="background:${theme.accent};">
+                  ${showMcqAns ? '🙈 उत्तर छिपाएं' : '👁️ उत्तर दिखाएं'}
+                </button>
+              </div>
+            </div>
+            ${renderFooter()}
+          </div>`;
+      }
+
+      // ==================== 10. MIND-MAP / REVISION ====================
+      const quads = (slide.bullets || []).slice(0, 4);
+      return `
+        <div class="w-full h-full flex flex-col justify-between" style="background:${theme.bg}; color:${theme.textColor};">
+          ${renderHeader(false)}
+          <div class="flex-1 px-11 pb-4 flex flex-col justify-between gap-3.5 overflow-hidden">
+            <div class="grid grid-cols-2 grid-rows-2 gap-4 flex-1">
+              ${quads.map((b, bi) => `
+                <div class="rounded-2xl p-4 flex flex-col gap-2 shadow-sm" style="background:${theme.surface}; border:1.5px solid ${theme.border}; border-left:6px solid ${theme.quadColors[bi % 4]};">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-lg text-xs font-extrabold text-white flex items-center justify-center shrink-0" style="background:${theme.quadColors[bi % 4]};">0${bi + 1}</span>
+                    <div class="font-extrabold leading-tight" style="font-size:${16.5 * s}px; color:${theme.quadColors[bi % 4]};" ${ce} data-field="bulletHeading" data-idx="${bi}">${escapeHtml(b.heading || 'मुख्य बिंदु')}</div>
+                  </div>
+                  <p class="leading-relaxed font-medium flex-1" style="font-size:${14.5 * s}px;" ${ce} data-field="bulletText" data-idx="${bi}">${escapeHtml(b.text)}</p>
+                </div>`).join('')}
+            </div>
+            ${renderCallout()}
+          </div>
+          ${renderFooter()}
+        </div>`;
+    }
+
+    window.toggleMcqAnswer = function() {
+      mcqAnswerVisible = !mcqAnswerVisible;
+      renderActiveSlide();
+      if (!document.getElementById('present-overlay').classList.contains('hidden')) renderPresentSlide();
+    };
+
+    /***************************************************************************
+     * 8. STAGE SCALER, DRAGGABLE PINS & UI RENDERING
+     ***************************************************************************/
+    function fitStageToViewport(viewportId, outerId, innerId) {
+      const vp = document.getElementById(viewportId);
+      const outer = document.getElementById(outerId);
+      const inner = document.getElementById(innerId);
+      if (!vp || !outer || !inner) return;
+      const st = getComputedStyle(vp);
+      const w = vp.clientWidth - parseFloat(st.paddingLeft) - parseFloat(st.paddingRight);
+      const h = vp.clientHeight - parseFloat(st.paddingTop) - parseFloat(st.paddingBottom);
+      if (w <= 0 || h <= 0) return;
+      const scale = Math.min(w / 1280, h / 720, 1);
+      outer.style.width = `${Math.floor(1280 * scale)}px`;
+      outer.style.height = `${Math.floor(720 * scale)}px`;
+      inner.style.transform = `scale(${scale})`;
+    }
+
+    function attachPinDragging(stageEl) {
+      const pins = stageEl.querySelectorAll('.callout-pin');
+      pins.forEach(pinEl => {
+        const startDrag = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const pinIdx = parseInt(pinEl.dataset.pinIdx, 10);
+          const outer = document.getElementById('stage-scaler-outer');
+          const rect = outer.getBoundingClientRect();
+
+          const moveDrag = (mEv) => {
+            const clientX = mEv.touches ? mEv.touches[0].clientX : mEv.clientX;
+            const clientY = mEv.touches ? mEv.touches[0].clientY : mEv.clientY;
+            const xPct = Math.min(96, Math.max(4, ((clientX - rect.left) / rect.width) * 100));
+            const yPct = Math.min(94, Math.max(6, ((clientY - rect.top) / rect.height) * 100));
+            pinEl.style.left = `${xPct.toFixed(1)}%`;
+            pinEl.style.top = `${yPct.toFixed(1)}%`;
+            const curPin = state.slides[state.activeIndex].pins?.[pinIdx];
+            if (curPin) {
+              curPin.x = Number(xPct.toFixed(1));
+              curPin.y = Number(yPct.toFixed(1));
+            }
+          };
+
+          const endDrag = () => {
+            window.removeEventListener('mousemove', moveDrag);
+            window.removeEventListener('mouseup', endDrag);
+            window.removeEventListener('touchmove', moveDrag);
+            window.removeEventListener('touchend', endDrag);
+            scheduleAutoSave();
+          };
+
+          window.addEventListener('mousemove', moveDrag);
+          window.addEventListener('mouseup', endDrag);
+          window.addEventListener('touchmove', moveDrag, { passive: false });
+          window.addEventListener('touchend', endDrag);
+        };
+
+        pinEl.addEventListener('mousedown', startDrag);
+        pinEl.addEventListener('touchstart', startDrag, { passive: false });
+      });
+    }
+
+    function renderAll() {
+      if (state.activeIndex >= state.slides.length) state.activeIndex = Math.max(0, state.slides.length - 1);
+      renderSlideList();
+      renderActiveSlide();
+      syncInspectorForms();
+      updateAppendPreview();
+      fitStageToViewport('stage-viewport', 'stage-scaler-outer', 'slide-stage-1280');
+      scheduleAutoSave();
+      lucide.createIcons();
+    }
+
+    function renderSlideList() {
+      const list = document.getElementById('slide-list');
+      const q = (document.getElementById('input-slide-search')?.value || '').trim().toLowerCase();
+      const theme = MASTER_THEMES[state.themeId];
+      const cur = state.slides[state.activeIndex];
+
+      document.getElementById('slide-count-badge').textContent = state.slides.length;
+      document.getElementById('active-slide-pill').textContent = `${state.pageLabel} ${state.activeIndex + 1} / ${state.slides.length}`;
+      document.getElementById('active-layout-pill').textContent = cur?.layout || 'split-visual';
+      document.getElementById('active-theme-indicator').textContent = theme.name;
+      document.getElementById('input-slide-jump').max = state.slides.length;
+
+      document.getElementById('stage-hint-text').textContent = cur?.layout === 'full-image'
+        ? '| नंबर्ड पिन्स (1, 2, 3) को खींचकर डायग्राम पर कहीं भी सेट करें'
+        : '| स्लाइड पर किसी भी टेक्स्ट को क्लिक करके सीधे एडिट करें';
+
+      const items = state.slides.map((sl, idx) => ({ sl, idx })).filter(({ sl, idx }) => {
+        if (!q) return true;
+        return (sl.title || '').toLowerCase().includes(q) || (sl.layout || '').toLowerCase().includes(q) || String(idx + 1) === q;
+      });
+
+      list.innerHTML = items.map(({ sl, idx }) => {
+        const active = idx === state.activeIndex;
+        const badgeCol = sl.layout === 'full-image' ? 'bg-amber-500/20 text-amber-300'
+                       : sl.layout === 'text-focus' ? 'bg-sky-500/20 text-sky-300'
+                       : 'bg-slate-800 text-slate-400';
+        return `
+          <button onclick="selectSlide(${idx})" class="w-44 lg:w-full shrink-0 text-left rounded-xl p-2 transition border flex items-center gap-2.5 ${active ? 'border-orange-500 bg-orange-500/15 shadow-sm' : 'border-slate-800 bg-slate-900/90 hover:border-slate-600'}">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-extrabold shrink-0" style="background:${active ? '#f97316' : '#1e293b'}; color:${active ? '#fff' : '#94a3b8'};">${idx + 1}</div>
+            <div class="min-w-0 flex-1">
+              <div class="text-[11px] font-bold text-slate-100 truncate">${escapeHtml(sl.title || 'Untitled')}</div>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="text-[9px] uppercase px-1.5 rounded font-bold ${badgeCol}">${sl.layout}</span>
+                ${sl.imageData ? '<span class="text-[9px] text-emerald-400">🖼️</span>' : ''}
+              </div>
+            </div>
+          </button>`;
+      }).join('');
+    }
+
+    function renderActiveSlide() {
+      const stage = document.getElementById('slide-stage-1280');
+      const slide = state.slides[state.activeIndex];
+      if (!slide) return;
+      stage.innerHTML = buildSlideHTML(slide, state.activeIndex, state.slides.length, true, mcqAnswerVisible);
+      attachPinDragging(stage);
+
+      stage.querySelectorAll('[contenteditable="true"]').forEach(el => {
+        el.addEventListener('focus', () => { lastFocusedField = el; });
+        el.addEventListener('input', () => {
+          const cur = state.slides[state.activeIndex];
+          const f = el.dataset.field;
+          const idx = parseInt(el.dataset.idx, 10);
+          const val = el.innerText.trim();
+
+          if (f === 'title') cur.title = val;
+          else if (f === 'subtitle') cur.subtitle = val;
+          else if (f === 'badge') cur.badge = val;
+          else if (f === 'intro') cur.intro = val;
+          else if (f === 'formula') cur.formula = val;
+          else if (f === 'imageCaption') cur.imageCaption = val;
+          else if (f === 'calloutTitle') cur.calloutTitle = val;
+          else if (f === 'calloutText') cur.calloutText = val;
+          else if (f === 'bulletHeading' && !isNaN(idx)) cur.bullets[idx].heading = val;
+          else if (f === 'bulletText' && !isNaN(idx)) cur.bullets[idx].text = val;
+          else if (f === 'mcqQuestion') cur.mcq.question = val;
+          else if (f === 'mcqOpt' && !isNaN(idx)) cur.mcq.options[idx] = val;
+          else if (f === 'mcqExp') cur.mcq.explanation = val;
+          else if (f === 'tableHeader') cur.table.headers[parseInt(el.dataset.col, 10)] = val;
+          else if (f === 'tableCell') cur.table.rows[parseInt(el.dataset.row, 10)][parseInt(el.dataset.col, 10)] = val;
+
+          renderSlideList();
+          scheduleAutoSave();
+        });
+      });
+    }
+
+    function syncInspectorForms() {
+      const s = state.slides[state.activeIndex];
+      if (!s) return;
+
+      // Full 16:9 Image Controls
+      const isFullImg = s.layout === 'full-image';
+      document.getElementById('full-image-controls').classList.toggle('hidden', !isFullImg);
+      if (isFullImg) {
+        document.getElementById('chk-pure-image').checked = Boolean(s.pureImage);
+        const btnContain = document.getElementById('btn-fit-contain');
+        const btnCover = document.getElementById('btn-fit-cover');
+        const isCov = s.imageFit === 'cover';
+        btnContain.className = `fit-btn py-1.5 px-2 rounded-lg border text-xs font-bold transition ${!isCov ? 'border-amber-400 bg-amber-500/25 text-amber-200' : 'border-slate-700 bg-slate-900 text-slate-400'}`;
+        btnCover.className = `fit-btn py-1.5 px-2 rounded-lg border text-xs font-bold transition ${isCov ? 'border-amber-400 bg-amber-500/25 text-amber-200' : 'border-slate-700 bg-slate-900 text-slate-400'}`;
+
+        const pinsList = document.getElementById('pins-editor-list');
+        pinsList.innerHTML = (s.pins || []).map((p, pi) => `
+          <div class="flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-full bg-orange-600 text-white text-[11px] font-extrabold flex items-center justify-center shrink-0">${p.num || pi + 1}</span>
+            <input type="text" value="${escapeHtml(p.label)}" data-pidx="${pi}" class="pin-label-inp flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white" placeholder="पिन लेबल लिखें..." />
+            <button onclick="removePin(${pi})" class="text-rose-400 hover:text-rose-300 px-1 text-sm">&times;</button>
+          </div>`).join('');
+
+        pinsList.querySelectorAll('.pin-label-inp').forEach(inp => {
+          inp.addEventListener('input', () => {
+            state.slides[state.activeIndex].pins[parseInt(inp.dataset.pidx, 10)].label = inp.value;
+            renderActiveSlide();
+            scheduleAutoSave();
+          });
+        });
+      }
+
+      // Standard Content Fields
+      document.getElementById('ed-badge').value = s.badge || '';
+      document.getElementById('ed-formula').value = s.formula || '';
+      document.getElementById('ed-title').value = s.title || '';
+      document.getElementById('ed-subtitle').value = s.subtitle || '';
+      document.getElementById('ed-intro').value = s.intro || '';
+      document.getElementById('ed-callout-type').value = s.calloutType || 'exam';
+      document.getElementById('ed-callout-title').value = s.calloutTitle || '';
+      document.getElementById('ed-callout-text').value = s.calloutText || '';
+      document.getElementById('input-img-prompt').value = s.imagePrompt || '';
+      document.getElementById('input-img-caption').value = s.imageCaption || '';
+
+      document.getElementById('ed-mcq-section').classList.toggle('hidden', s.layout !== 'quiz');
+      document.getElementById('ed-table-section').classList.toggle('hidden', s.layout !== 'table-visual');
+      document.getElementById('ed-bullets-wrapper').classList.toggle('hidden', s.layout === 'quiz' || s.layout === 'full-image');
+
+      if (s.layout === 'quiz') {
+        if (!s.mcq) s.mcq = { question: '', options: ['', '', '', ''], answerIndex: 0, explanation: '' };
+        document.getElementById('ed-mcq-q').value = s.mcq.question || '';
+        for (let i = 0; i < 4; i++) document.getElementById(`ed-mcq-opt${i}`).value = s.mcq.options?.[i] || '';
+        document.getElementById('ed-mcq-ans').value = String(s.mcq.answerIndex ?? 0);
+        document.getElementById('ed-mcq-exp').value = s.mcq.explanation || '';
+      }
+
+      const bList = document.getElementById('ed-bullets-list');
+      bList.innerHTML = (s.bullets || []).map((b, bi) => `
+        <div class="p-2 rounded-lg bg-slate-800/70 border border-slate-700 space-y-1.5">
+          <div class="flex items-center gap-1.5">
+            <input type="text" value="${escapeHtml(b.heading)}" data-bidx="${bi}" data-bkey="heading" class="track-focus bullet-inp flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] font-bold text-orange-300" placeholder="हेडिंग" />
+            <button onclick="removeBullet(${bi})" class="text-rose-400 hover:text-rose-300 text-xs px-1">&times;</button>
+          </div>
+          <textarea rows="2" data-bidx="${bi}" data-bkey="text" class="track-focus bullet-inp w-full px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-slate-200" placeholder="विवरण...">${escapeHtml(b.text)}</textarea>
+        </div>`).join('');
+
+      bList.querySelectorAll('.bullet-inp').forEach(inp => {
+        inp.addEventListener('focus', () => { lastFocusedField = inp; });
+        inp.addEventListener('input', () => {
+          state.slides[state.activeIndex].bullets[parseInt(inp.dataset.bidx, 10)][inp.dataset.bkey] = inp.value;
+          renderActiveSlide();
+          scheduleAutoSave();
+        });
+      });
+
+      document.querySelectorAll('.layout-btn').forEach(btn => {
+        const act = btn.dataset.layout === s.layout;
+        btn.classList.toggle('ring-2', act);
+        btn.classList.toggle('ring-indigo-400', act);
+      });
+      document.querySelectorAll('.theme-card-btn').forEach(btn => {
+        const act = btn.dataset.theme === state.themeId;
+        btn.classList.toggle('border-orange-500', act);
+        btn.classList.toggle('ring-1', act);
+        btn.classList.toggle('ring-orange-500', act);
+      });
+
+      document.getElementById('input-global-footer').value = state.footerText;
+      document.getElementById('input-page-label').value = state.pageLabel;
+      document.getElementById('input-font-scale').value = state.fontScale;
+      document.getElementById('font-scale-label').textContent = state.fontScale + '%';
+    }
+
+    window.selectSlide = function(idx) {
+      state.activeIndex = idx;
+      mcqAnswerVisible = false;
+      renderAll();
+    };
+
+    window.removeBullet = function(idx) {
+      const cur = state.slides[state.activeIndex];
+      if (cur.bullets && cur.bullets.length > 1) {
+        cur.bullets.splice(idx, 1);
+        renderAll();
+      } else {
+        showToast('कम से कम 1 बिंदु आवश्यक है।', 'error');
+      }
+    };
+
+    window.removePin = function(idx) {
+      const cur = state.slides[state.activeIndex];
+      if (!cur.pins) return;
+      cur.pins.splice(idx, 1);
+      cur.pins.forEach((p, i) => { p.num = i + 1; });
+      renderAll();
+    };
+
+    function updateAppendPreview() {
+      const add = aiModalMode === 'mega'
+        ? parseInt(document.getElementById('ai-mega-count').value, 10)
+        : parseInt(document.getElementById('ai-batch-count').value, 10);
+      document.getElementById('append-preview-text').textContent = `वर्तमान: ${state.slides.length} स्लाइड्स → नया कुल: ${state.slides.length + add} स्लाइड्स`;
+    }
+
+    function insertSymbolAtCursor(sym) {
+      const el = lastFocusedField;
+      if (!el) {
+        showToast('पहले किसी टेक्स्ट बॉक्स पर क्लिक करें।', 'info');
+        return;
+      }
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        const st = el.selectionStart ?? el.value.length;
+        const en = el.selectionEnd ?? el.value.length;
+        el.value = el.value.slice(0, st) + sym + el.value.slice(en);
+        el.focus();
+        el.setSelectionRange(st + sym.length, st + sym.length);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (el.isContentEditable) {
+        el.focus();
+        document.execCommand('insertText', false, sym);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+
+    function initStaticUI() {
+      document.getElementById('symbol-bar').innerHTML = MATH_SYMBOLS.map(sym =>
+        `<button type="button" data-sym="${sym}" class="sym-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-100 text-xs font-bold border border-slate-700 transition">${sym}</button>`
+      ).join('');
+      document.querySelectorAll('.sym-btn').forEach(b => b.addEventListener('click', () => insertSymbolAtCursor(b.dataset.sym)));
+
+      document.getElementById('clipart-grid').innerHTML = Object.entries(SVG_CLIPARTS).map(([k, item]) => `
+        <button data-clip="${k}" class="clip-btn p-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:border-amber-400 flex flex-col items-center gap-0.5 transition">
+          ${getClipartSvg(k, '#cbd5e1', 'w-4 h-4')}
+          <span class="text-[9px] text-slate-400 truncate w-full text-center">${item.label}</span>
+        </button>`).join('');
+      document.querySelectorAll('.clip-btn').forEach(b => b.addEventListener('click', () => {
+        state.slides[state.activeIndex].clipart = b.dataset.clip;
+        state.slides[state.activeIndex].imageData = null;
+        renderAll();
+        showToast('वेक्टर क्लिपआर्ट लगाया गया!', 'success');
+      }));
+
+      document.getElementById('theme-list').innerHTML = Object.values(MASTER_THEMES).map(t => `
+        <button data-theme="${t.id}" class="theme-card-btn w-full p-2.5 rounded-xl border border-slate-700 bg-slate-800/60 hover:border-orange-400 text-left flex items-center gap-3 transition">
+          <div class="w-10 h-10 rounded-lg shrink-0 flex flex-col overflow-hidden border border-slate-600" style="background:${t.bg};">
+            <div class="h-2.5 w-full" style="background:${t.tableHeaderBg};"></div>
+            <div class="flex-1 flex items-center justify-center gap-1 p-1">
+              <span class="w-2.5 h-2.5 rounded-full" style="background:${t.accent};"></span>
+              <span class="w-2.5 h-2.5 rounded-full" style="background:${t.titleColor};"></span>
+            </div>
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-white truncate">${t.name}</div>
+            <div class="text-[10px] text-slate-400 truncate">${t.desc}</div>
+          </div>
+        </button>`).join('');
+      document.querySelectorAll('.theme-card-btn').forEach(b => b.addEventListener('click', () => {
+        state.themeId = b.dataset.theme;
+        renderAll();
+        showToast(`"${MASTER_THEMES[state.themeId].name}" थीम लागू हुई!`, 'success');
+      }));
+
+      document.querySelectorAll('.track-focus').forEach(el => el.addEventListener('focus', () => { lastFocusedField = el; }));
+    }
+
+    /***************************************************************************
+     * 9. AI FEATURES: 2-SLIDE PAIR, BATCH, 50-PAGE MEGA BUILDER, TRANSLATE, IMAGES
+     ***************************************************************************/
+    async function generate2SlidePair() {
+      const topic = document.getElementById('input-page-ai-prompt').value.trim();
+      const langKey = document.getElementById('single-ai-lang').value;
+      const autoImg = document.getElementById('chk-page-regen-img').checked;
+
+      if (!topic) {
+        showToast('कृपया 2-Slide Pair के लिए टॉपिक लिखें।', 'error');
+        return;
+      }
+
+      openProgress('🖼️+📝 2-Slide Pair बन रहा है...', 'स्लाइड 1 (Full 16:9 इमेज) + स्लाइड 2 (विस्तृत टेक्स्ट) तैयार हो रही हैं...', 20);
+
+      const pairSchema = {
+        type: "OBJECT",
+        properties: {
+          imageSlide: SLIDE_SCHEMA,
+          textSlide: SLIDE_SCHEMA
+        },
+        required: ["imageSlide", "textSlide"]
+      };
+
+      const prompt = `Create an educational 2-slide teaching pair on: "${topic}".
+Language Requirement: ${LANGUAGE_INSTRUCTIONS[langKey]}
+- "imageSlide" MUST have layout "full-image", a concise title, badge, imageCaption, and a rich, detailed English "imagePrompt" describing a widescreen 16:9 labeled scientific diagram/infographic so a teacher can explain the concept visually.
+- "textSlide" MUST have layout "text-focus", a clear intro paragraph, 4 crisp structured bullets explaining the visual diagram step-by-step, an optional formula if relevant, and a helpful "सरल भाषा में समझें" or "बोर्ड परीक्षा बिंदु" callout box.`;
+
+      try {
+        const res = await callGeminiJSON(prompt, pairSchema);
+        const imgSlide = normalizeSlide({ ...res.imageSlide, layout: 'full-image', imageFit: 'contain', pureImage: false }, 0);
+        const txtSlide = normalizeSlide({ ...res.textSlide, layout: 'text-focus' }, 1);
+
+        const insertAt = state.activeIndex + 1;
+        state.slides.splice(insertAt, 0, imgSlide, txtSlide);
+        state.activeIndex = insertAt;
+        renderAll();
+
+        if (autoImg && !cancelRequested) {
+          updateProgress('🎨 स्लाइड 1 के लिए 16:9 AI डायग्राम जनरेट हो रहा है...', 65);
+          try {
+            imgSlide.imageData = await callGeminiImageGen(imgSlide.imagePrompt || imgSlide.title, '16:9');
+          } catch (e) {
+            imgSlide.imageData = buildFallbackDiagramDataURL(imgSlide, MASTER_THEMES[state.themeId]);
+          }
+          renderAll();
+        }
+
+        document.getElementById('input-page-ai-prompt').value = '';
+        closeProgress();
+        showToast('2-Slide Pair (16:9 इमेज + अगला टेक्स्ट पेज) तैयार है!', 'success');
+      } catch (err) {
+        closeProgress();
+        showToast('2-Slide Pair बनाने में त्रुटि आई। कृपया पुनः प्रयास करें।', 'error');
+      }
+    }
+
+    async function runAIGenerator() {
+      const topic = document.getElementById('ai-topic-input').value.trim();
+      const classLevel = document.getElementById('ai-class-input').value.trim() || 'UP Board / NCERT';
+      const langKey = document.getElementById('ai-lang-select').value;
+      const styleMode = document.getElementById('ai-style-select').value; // 'pairs' | 'standard'
+      const mode = document.querySelector('input[name="ai-deck-mode"]:checked')?.value || 'append';
+      const autoImgs = document.getElementById('chk-auto-images').checked;
+
+      if (!topic) {
+        showToast('कृपया टॉपिक या अध्याय का नाम लिखें।', 'error');
+        return;
+      }
+
+      closeAIModal();
+      const langRule = LANGUAGE_INSTRUCTIONS[langKey] || LANGUAGE_INSTRUCTIONS.bilingual;
+      const styleRule = styleMode === 'pairs'
+        ? 'IMPORTANT PATTERN: Alternate every concept as a 2-slide pair -> Odd content slides MUST use layout "full-image" (with a detailed 16:9 widescreen educational diagram English imagePrompt), followed immediately by Even content slides using layout "text-focus" (detailed explanation, bullets, formula, and callout box).'
+        : 'Use a clean academic mix across all 10 layouts: "cover", "full-image", "text-focus", "split-visual", "simple-box", "table-visual", "formula", "steps", "quiz", and "mindmap".';
+
+      if (aiModalMode === 'batch') {
+        const count = parseInt(document.getElementById('ai-batch-count').value, 10) || 12;
+        await generateBatchSlides({ topic, classLevel, langRule, styleRule, count, mode, autoImgs });
+      } else {
+        const targetTotal = parseInt(document.getElementById('ai-mega-count').value, 10) || 50;
+        await run50PageMegaBuilder({ topic, classLevel, langRule, styleRule, targetTotal, mode, autoImgs });
+      }
+    }
+
+    async function generateBatchSlides({ topic, classLevel, langRule, styleRule, count, mode, autoImgs }) {
+      openProgress('AI बैच स्लाइड्स बना रहा है...', `Gemini AI ${count} स्लाइड्स तैयार कर रहा है...`, 15);
+      const batchSchema = {
+        type: "OBJECT",
+        properties: { footer: { type: "STRING" }, slides: { type: "ARRAY", items: SLIDE_SCHEMA } },
+        required: ["footer", "slides"]
+      };
+
+      const prompt = `You are an expert Indian NCERT / UP Board educator.
+Generate exactly ${count} consistent slides on: "${topic}" (${classLevel}).
+Language Requirement: ${langRule}
+Layout Pattern: ${styleRule}
+- ${mode === 'new' ? 'Slide 1 MUST be "cover".' : 'Appending to existing deck: do not repeat a cover slide.'}
+- Include detailed English "imagePrompt" for every visual/full-image slide and matching "imageCaption".
+- Choose "clipart" from: ${Object.keys(SVG_CLIPARTS).join(', ')}.`;
+
+      try {
+        const res = await callGeminiJSON(prompt, batchSchema);
+        if (cancelRequested) { closeProgress(); return; }
+        const built = (res.slides || []).map((s, i) => normalizeSlide(s, i));
+        if (!built.length) throw new Error('Empty slides');
+
+        const startIdx = mode === 'append' ? state.slides.length : 0;
+        if (mode === 'append') state.slides.push(...built);
+        else {
+          state.slides = built;
+          if (res.footer) state.footerText = res.footer;
+        }
+        state.activeIndex = startIdx;
+        renderAll();
+
+        if (autoImgs) {
+          const imgIndices = built
+            .map((s, i) => (s.layout !== 'text-focus' && s.layout !== 'quiz' && s.layout !== 'steps' && s.layout !== 'mindmap' ? startIdx + i : -1))
+            .filter(i => i >= 0);
+          await generateImagesForIndices(imgIndices);
+        }
+
+        closeProgress();
+        showToast(`${built.length} स्लाइड्स तैयार! कुल: ${state.slides.length} स्लाइड्स`, 'success');
+      } catch (e) {
+        closeProgress();
+        showToast('AI बैच बनाने में त्रुटि आई। कृपया पुनः प्रयास करें।', 'error');
+      }
+    }
+
+    async function run50PageMegaBuilder({ topic, classLevel, langRule, styleRule, targetTotal, mode, autoImgs }) {
+      openProgress('🚀 50-Page Mega Builder', `चरण 1: ${targetTotal} स्लाइड्स की अध्याय रूपरेखा (Outline) बन रही है...`, 6);
+
+      const outlineSchema = {
+        type: "OBJECT",
+        properties: {
+          footer: { type: "STRING" },
+          outline: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                slideNo: { type: "INTEGER" },
+                title: { type: "STRING" },
+                layout: { type: "STRING", enum: ["cover", "full-image", "text-focus", "split-visual", "simple-box", "table-visual", "formula", "steps", "quiz", "mindmap"] },
+                focus: { type: "STRING" }
+              },
+              required: ["slideNo", "title", "layout", "focus"]
+            }
+          }
+        },
+        required: ["footer", "outline"]
+      };
+
+      const outlinePrompt = `Plan a comprehensive ${targetTotal}-slide academic presentation on: "${topic}" (${classLevel}).
+Language: ${langRule}
+Layout Pattern: ${styleRule}
+Return exactly ${targetTotal} items in "outline".`;
+
+      try {
+        const plan = await callGeminiJSON(outlinePrompt, outlineSchema);
+        if (cancelRequested) { closeProgress(); return; }
+        const outline = plan.outline || [];
+        if (!outline.length) throw new Error('Outline failed');
+
+        if (mode === 'new') {
+          state.slides = [];
+          if (plan.footer) state.footerText = plan.footer;
+          state.activeIndex = 0;
+        }
+
+        const startIdxAll = state.slides.length;
+        const batchSize = 8;
+        const totalBatches = Math.ceil(outline.length / batchSize);
+        const batchSchema = {
+          type: "OBJECT",
+          properties: { slides: { type: "ARRAY", items: SLIDE_SCHEMA } },
+          required: ["slides"]
+        };
+
+        let created = 0;
+        for (let b = 0; b < totalBatches; b++) {
+          if (cancelRequested) break;
+          const chunk = outline.slice(b * batchSize, (b + 1) * batchSize);
+          updateProgress(`बैच ${b + 1} / ${totalBatches}: स्लाइड ${b * batchSize + 1}–${b * batchSize + chunk.length} बन रही हैं... (कुल ${state.slides.length})`, 12 + Math.round((b / totalBatches) * 82));
+
+          const chunkPrompt = `Generate detailed academic slides for this batch of ${chunk.length} slides from "${topic}" (${classLevel}).
+Language: ${langRule}
+Follow this exact outline: ${JSON.stringify(chunk)}
+Include rich 16:9 English "imagePrompt" for every visual/full-image slide, formulas where applicable, and exam/simple callout boxes.`;
+
+          const res = await callGeminiJSON(chunkPrompt, batchSchema);
+          const built = (res.slides || []).map((s, idx) => normalizeSlide(s, idx));
+          state.slides.push(...built);
+          created += built.length;
+          if (state.slides.length === built.length) state.activeIndex = 0;
+          renderAll();
+        }
+
+        if (autoImgs && !cancelRequested && created > 0) {
+          const imgIndices = [];
+          for (let i = startIdxAll; i < startIdxAll + created; i++) {
+            const l = state.slides[i]?.layout;
+            if (l && l !== 'text-focus' && l !== 'quiz' && l !== 'steps' && l !== 'mindmap') imgIndices.push(i);
+          }
+          await generateImagesForIndices(imgIndices);
+        }
+
+        closeProgress();
+        showToast(`मेगा बिल्डर पूर्ण! ${created} स्लाइड्स बनीं (कुल: ${state.slides.length})`, 'success');
+      } catch (e) {
+        closeProgress();
+        showToast('मेगा बिल्डर रुका — अब तक बनी स्लाइड्स सुरक्षित हैं!', 'error');
+      }
+    }
+
+    async function runSingleSlideAI() {
+      const promptTxt = document.getElementById('input-page-ai-prompt').value.trim();
+      const langKey = document.getElementById('single-ai-lang').value;
+      const regenImg = document.getElementById('chk-page-regen-img').checked;
+      if (!promptTxt) {
+        showToast('कृपया इस पेज के लिए प्रॉम्प्ट लिखें।', 'error');
+        return;
+      }
+
+      const cur = state.slides[state.activeIndex];
+      const btn = document.getElementById('btn-run-page-ai');
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ AI अपडेट कर रहा है...';
+
+      const prompt = `Modify ONLY this single presentation slide per the user's instruction.
+Language Requirement: ${LANGUAGE_INSTRUCTIONS[langKey]}
+Instruction: "${promptTxt}"
+Current Slide: ${JSON.stringify({ ...cur, imageData: null })}
+Return complete updated slide JSON including a rich English "imagePrompt".`;
+
+      try {
+        const updated = await callGeminiJSON(prompt, SLIDE_SCHEMA);
+        Object.assign(cur, normalizeSlide({ ...updated, id: cur.id, pins: cur.pins, pureImage: cur.pureImage, imageFit: cur.imageFit, imageData: cur.imageData }));
+        renderAll();
+        if (regenImg) await generateCurrentSlideImage();
+        document.getElementById('input-page-ai-prompt').value = '';
+        showToast('पेज AI से अपडेट हो गया!', 'success');
+      } catch (e) {
+        showToast('पेज अपडेट नहीं हो सका।', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+        lucide.createIcons();
+      }
+    }
+
+    async function translateCurrentSlide() {
+      const targetLang = document.getElementById('translate-target-lang').value;
+      const cur = state.slides[state.activeIndex];
+      const btn = document.getElementById('btn-translate-slide');
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳...';
+
+      const prompt = `Translate ALL visible text fields (badge, title, subtitle, intro, bullets, table, mcq, calloutTitle, calloutText, imageCaption) of this slide accurately.
+Target Language: ${LANGUAGE_INSTRUCTIONS[targetLang]}
+Keep exact layout, formulas, and keep imagePrompt in English.
+Slide JSON: ${JSON.stringify({ ...cur, imageData: null })}`;
+
+      try {
+        const translated = await callGeminiJSON(prompt, SLIDE_SCHEMA);
+        Object.assign(cur, normalizeSlide({ ...translated, id: cur.id, pins: cur.pins, pureImage: cur.pureImage, imageFit: cur.imageFit, imageData: cur.imageData }));
+        renderAll();
+        showToast('स्लाइड का अनुवाद हो गया!', 'success');
+      } catch (e) {
+        showToast('अनुवाद करने में त्रुटि आई।', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
+
+    async function refineSlideImagePrompt() {
+      const cur = state.slides[state.activeIndex];
+      const btn = document.getElementById('btn-refine-img-prompt');
+      btn.disabled = true;
+      btn.textContent = '⏳...';
+
+      const schema = { type: "OBJECT", properties: { imagePrompt: { type: "STRING" }, imageCaption: { type: "STRING" } }, required: ["imagePrompt", "imageCaption"] };
+      const prompt = `Write a detailed English image generation prompt for a crisp ${cur.layout === 'full-image' ? '16:9 widescreen' : '4:3'} NCERT textbook diagram for: Title: "${cur.title}", Intro: "${cur.intro}". Also give a short matching imageCaption.`;
+
+      try {
+        const res = await callGeminiJSON(prompt, schema);
+        cur.imagePrompt = res.imagePrompt;
+        if (res.imageCaption) cur.imageCaption = res.imageCaption;
+        renderAll();
+        showToast('इमेज प्रॉम्प्ट सुधारा गया!', 'success');
+      } catch (e) {
+        showToast('प्रॉम्प्ट सुधारने में त्रुटि आई।', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🪄 प्रॉम्प्ट सुधारें';
+      }
+    }
+
+    async function generateCurrentSlideImage() {
+      const cur = state.slides[state.activeIndex];
+      const promptText = document.getElementById('input-img-prompt').value.trim() || cur.imagePrompt || cur.title;
+      cur.imagePrompt = promptText;
+
+      const loader = document.getElementById('slide-img-loading');
+      const btn = document.getElementById('btn-gen-slide-img');
+      loader.classList.remove('hidden');
+      btn.disabled = true;
+
+      try {
+        const aspect = cur.layout === 'full-image' ? '16:9' : '4:3';
+        cur.imageData = await callGeminiImageGen(promptText, aspect);
+        renderAll();
+        showToast(`${aspect} AI इमेज तैयार है!`, 'success');
+      } catch (e) {
+        cur.imageData = buildFallbackDiagramDataURL(cur, MASTER_THEMES[state.themeId]);
+        renderAll();
+        showToast('स्मार्ट 16:9 वेक्टर डायग्राम लगाया गया।', 'info');
+      } finally {
+        loader.classList.add('hidden');
+        btn.disabled = false;
+      }
+    }
+
+    async function generateImagesForIndices(indices) {
+      if (!indices.length) {
+        showToast('चुनी गई रेंज में कोई इमेज स्लाइड नहीं मिली।', 'info');
+        return;
+      }
+      openProgress('बैच AI इमेज बन रही हैं...', `0 / ${indices.length} पूर्ण`, 5);
+      let done = 0;
+      for (const idx of indices) {
+        if (cancelRequested) break;
+        const sl = state.slides[idx];
+        if (!sl) continue;
+        done++;
+        const aspect = sl.layout === 'full-image' ? '16:9' : '4:3';
+        updateProgress(`इमेज ${done} / ${indices.length} (पृष्ठ ${idx + 1} • ${aspect}): ${(sl.title || '').slice(0, 24)}...`, Math.round((done / indices.length) * 100));
+        try {
+          sl.imageData = await callGeminiImageGen(sl.imagePrompt || sl.title, aspect);
+        } catch (e) {
+          sl.imageData = buildFallbackDiagramDataURL(sl, MASTER_THEMES[state.themeId]);
+        }
+        renderAll();
+      }
+      closeProgress();
+      showToast(`${done} स्लाइड्स की AI इमेज तैयार हो गई!`, 'success');
+    }
+
+    /***************************************************************************
+     * 10. EDITABLE .PPTX EXPORT (All 10 Layouts + Edge-to-Edge 16:9 + Pins!)
+     ***************************************************************************/
+    function exportToPPTX() {
+      if (typeof PptxGenJS === 'undefined') {
+        showToast('PptxGenJS लोड हो रहा है, कृपया प्रतीक्षा करें।', 'error');
+        return;
+      }
+      try {
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_16x9'; // 10" x 5.625"
+        pptx.title = state.slides[0]?.title || 'AI PPT Studio Pro v4';
+
+        const theme = MASTER_THEMES[state.themeId] || MASTER_THEMES['up-board'];
+        const hex = c => c.replace('#', '');
+        const total = state.slides.length;
+
+        state.slides.forEach((s, idx) => {
+          const slide = pptx.addSlide();
+          slide.background = { color: s.layout === 'full-image' && s.pureImage ? '000000' : hex(theme.bg) };
+
+          // 1. FULL 16:9 IMAGE SLIDE (10" x 5.625" Edge-to-Edge + Pins)
+          if (s.layout === 'full-image') {
+            if (s.imageData && s.imageData.startsWith('data:image/')) {
+              try {
+                slide.addImage({
+                  data: s.imageData,
+                  x: 0, y: 0, w: 10, h: 5.625,
+                  sizing: { type: s.imageFit === 'cover' ? 'cover' : 'contain', w: 10, h: 5.625 }
+                });
+              } catch (e) {}
+            }
+            // Export Numbered Callout Pins
+            (s.pins || []).forEach((pin, pi) => {
+              const px = (pin.x / 100) * 10 - 0.16;
+              const py = (pin.y / 100) * 5.625 - 0.16;
+              slide.addShape(pptx.ShapeType.ellipse, {
+                x: Math.max(0.05, px), y: Math.max(0.05, py), w: 0.32, h: 0.32,
+                fill: { color: 'EA580C' }, line: { color: 'FFFFFF', width: 1.5 }
+              });
+              slide.addText(String(pin.num || pi + 1), {
+                x: Math.max(0.05, px), y: Math.max(0.05, py), w: 0.32, h: 0.32,
+                fontSize: 10, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle', fontFace: 'Nirmala UI'
+              });
+              if (pin.label) {
+                slide.addText(pin.label, {
+                  x: Math.min(7.5, Math.max(0.4, px + 0.36)), y: Math.max(0.05, py), w: 2.3, h: 0.32,
+                  fontSize: 9, bold: true, color: 'FFFFFF', fill: { color: '0F172A' }, fontFace: 'Nirmala UI'
+                });
+              }
+            });
+
+            if (!s.pureImage) {
+              slide.addShape(pptx.ShapeType.roundRect, { x: 0.3, y: 0.18, w: 9.4, h: 0.48, fill: { color: '0F172A', transparency: 22 } });
+              slide.addText(s.title || '', { x: 0.45, y: 0.22, w: 7.5, h: 0.4, fontSize: 15, bold: true, color: 'FFFFFF', fontFace: 'Nirmala UI' });
+              if (s.badge) slide.addText(s.badge, { x: 8.0, y: 0.26, w: 1.55, h: 0.3, fontSize: 9, bold: true, align: 'center', color: 'FFFFFF', fill: { color: hex(theme.accent) }, fontFace: 'Nirmala UI' });
+
+              slide.addShape(pptx.ShapeType.roundRect, { x: 0.3, y: 5.05, w: 9.4, h: 0.4, fill: { color: '0F172A', transparency: 22 } });
+              slide.addText(s.imageCaption || state.footerText || '', { x: 0.45, y: 5.09, w: 7.7, h: 0.32, fontSize: 10, color: 'F1F5F9', fontFace: 'Nirmala UI' });
+              slide.addText(`${state.pageLabel} ${idx + 1} / ${total}`, { x: 8.2, y: 5.09, w: 1.35, h: 0.32, fontSize: 9.5, bold: true, align: 'right', color: 'FDE047', fontFace: 'Nirmala UI' });
+            }
+            return;
+          }
+
+          // Standard Footer for all other 9 layouts
+          slide.addShape(pptx.ShapeType.line, { x: 0.45, y: 5.18, w: 9.1, h: 0, line: { color: hex(theme.border), width: 0.75 } });
+          slide.addText(state.footerText || '', { x: 0.45, y: 5.23, w: 7.4, h: 0.28, fontSize: 9.5, color: hex(theme.mutedColor), fontFace: 'Nirmala UI' });
+          slide.addText(`${state.pageLabel} ${idx + 1} / ${total}`, { x: 8.1, y: 5.23, w: 1.45, h: 0.28, fontSize: 9.5, bold: true, align: 'right', color: hex(theme.mutedColor), fontFace: 'Nirmala UI' });
+
+          const addVisual = (x, y, w, h, capY) => {
+            slide.addShape(pptx.ShapeType.roundRect, { x, y, w, h, fill: { color: hex(theme.surface) }, line: { color: hex(theme.border), width: 1 } });
+            if (s.imageData && s.imageData.startsWith('data:image/')) {
+              try {
+                slide.addImage({ data: s.imageData, x: x + 0.08, y: y + 0.08, w: w - 0.16, h: h - 0.16, sizing: { type: 'contain', w: w - 0.16, h: h - 0.16 } });
+              } catch (e) {}
+            }
+            if (s.imageCaption) slide.addText(s.imageCaption, { x, y: capY, w, h: 0.28, fontSize: 9.5, italic: true, align: 'center', color: hex(theme.mutedColor), fontFace: 'Nirmala UI' });
+          };
+
+          const addCallout = (x, y, w, h) => {
+            if (!s.calloutText) return;
+            const cs = s.calloutType === 'simple' ? theme.calloutSimple : theme.calloutExam;
+            slide.addShape(pptx.ShapeType.rect, { x, y, w, h, fill: { color: hex(cs.bg) }, line: { color: hex(cs.border), width: 1 } });
+            slide.addText([
+              { text: (s.calloutTitle || 'मुख्य बिंदु') + '\n', options: { bold: true, color: hex(cs.title), fontSize: 10.5 } },
+              { text: s.calloutText, options: { color: hex(cs.text), fontSize: 9.5 } }
+            ], { x: x + 0.12, y: y + 0.04, w: w - 0.2, h: h - 0.08, valign: 'top', fontFace: 'Nirmala UI' });
+          };
+
+          // 2. COVER
+          if (s.layout === 'cover') {
+            slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 10, h: 0.12, fill: { color: hex(theme.accent) } });
+            if (s.badge) slide.addText(s.badge, { x: 0.55, y: 0.7, w: 4.5, h: 0.35, fontSize: 11, bold: true, color: hex(theme.badgeText), fill: { color: hex(theme.badgeBg) }, fontFace: 'Nirmala UI' });
+            slide.addText(s.title || '', { x: 0.55, y: 1.2, w: 5.3, h: 1.25, fontSize: 28, bold: true, color: hex(theme.titleColor), fontFace: 'Nirmala UI' });
+            slide.addShape(pptx.ShapeType.line, { x: 0.55, y: 2.52, w: 2.2, h: 0, line: { color: hex(theme.accent), width: 2.2, dashType: 'dash' } });
+            slide.addText(s.subtitle || '', { x: 0.55, y: 2.7, w: 5.3, h: 0.65, fontSize: 14.5, bold: true, color: hex(theme.accent), fontFace: 'Nirmala UI' });
+            if (s.intro) slide.addText(s.intro, { x: 0.55, y: 3.45, w: 5.3, h: 1.1, fontSize: 12, color: hex(theme.mutedColor), fontFace: 'Nirmala UI' });
+            addVisual(6.1, 0.85, 3.45, 3.6, 4.52);
+            return;
+          }
+
+          // Common Header
+          if (s.layout === 'simple-box') {
+            slide.addText(s.title || '', { x: 0.6, y: 0.22, w: 8.8, h: 0.48, fontSize: 23, bold: true, align: 'center', color: hex(theme.accent), fontFace: 'Nirmala UI' });
+            if (s.subtitle) slide.addText(s.subtitle, { x: 0.6, y: 0.7, w: 8.8, h: 0.32, fontSize: 13, bold: true, align: 'center', color: hex(theme.titleColor), fontFace: 'Nirmala UI' });
+          } else {
+            if (theme.titleStyle === 'vertical-bar') slide.addShape(pptx.ShapeType.rect, { x: 0.45, y: 0.3, w: 0.1, h: 0.6, fill: { color: hex(theme.accent) } });
+            else slide.addShape(pptx.ShapeType.line, { x: 0.45, y: 0.8, w: 1.6, h: 0, line: { color: hex(theme.accent), width: 2, dashType: 'dash' } });
+            slide.addText(s.title || '', { x: theme.titleStyle === 'vertical-bar' ? 0.65 : 0.45, y: 0.24, w: 6.9, h: 0.48, fontSize: 20, bold: true, color: hex(theme.titleColor), fontFace: 'Nirmala UI' });
+            if (s.badge) slide.addText(s.badge, { x: 7.45, y: 0.28, w: 2.1, h: 0.32, fontSize: 9.5, bold: true, align: 'center', color: hex(theme.badgeText), fill: { color: hex(theme.badgeBg) }, fontFace: 'Nirmala UI' });
+          }
+
+          // 3. TEXT FOCUS (Full-Width Detailed Explanation)
+          if (s.layout === 'text-focus') {
+            let cy = 1.0;
+            if (s.intro) {
+              slide.addShape(pptx.ShapeType.roundRect, { x: 0.45, y: cy, w: 9.1, h: 0.72, fill: { color: hex(theme.surface) }, line: { color: hex(theme.border), width: 1 } });
+              slide.addText(s.intro, { x: 0.6, y: cy + 0.06, w: 8.8, h: 0.6, fontSize: 12, bold: true, color: hex(theme.titleColor), valign: 'middle', fontFace: 'Nirmala UI' });
+              cy += 0.84;
+            }
+            const lines = (s.bullets || []).slice(0, 5).map(b => ({
+              text: `${b.heading ? b.heading + ': ' : ''}${b.text}`,
+              options: { bullet: true, breakLine: true, paraSpaceAfter: 8 }
+            }));
+            slide.addText(lines, { x: 0.45, y: cy, w: 9.1, h: 1.9, fontSize: 12.5, color: hex(theme.textColor), valign: 'top', fontFace: 'Nirmala UI' });
+            if (s.formula) {
+              slide.addText(s.formula, { x: 0.45, y: 3.68, w: 9.1, h: 0.4, fontSize: 12, bold: true, color: hex(theme.titleColor), fill: { color: hex(theme.accentSoft) }, line: { color: hex(theme.accent), width: 1 }, fontFace: 'Nirmala UI' });
+            }
+            addCallout(0.45, 4.18, 9.1, 0.86);
+            return;
+          }
+
+          // 4. SIMPLE BOX
+          if (s.layout === 'simple-box') {
+            addVisual(0.45, 1.15, 4.4, 3.55, 4.75);
+            if (s.intro) slide.addText(s.intro, { x: 5.1, y: 1.2, w: 4.45, h: 2.1, fontSize: 12.5, color: hex(theme.textColor), valign: 'top', fontFace: 'Nirmala UI' });
+            if (s.formula) slide.addText(s.formula, { x: 5.1, y: 3.35, w: 4.45, h: 0.4, fontSize: 12, bold: true, color: hex(theme.titleColor), fill: { color: hex(theme.accentSoft) }, fontFace: 'Nirmala UI' });
+            addCallout(5.1, 3.9, 4.45, 1.05);
+            return;
+          }
+
+          // 5. STEPS
+          if (s.layout === 'steps') {
+            (s.bullets || []).slice(0, 4).forEach((st, si) => {
+              const x = 0.45 + si * 2.32;
+              slide.addShape(pptx.ShapeType.roundRect, { x, y: 1.2, w: 2.18, h: 2.75, fill: { color: hex(theme.surface) }, line: { color: hex(theme.quadColors[si % 4]), width: 1.5 } });
+              slide.addText(`${si + 1}. ${st.heading || ''}`, { x: x + 0.1, y: 1.32, w: 1.98, h: 0.55, fontSize: 12, bold: true, color: hex(theme.quadColors[si % 4]), fontFace: 'Nirmala UI' });
+              slide.addText(st.text || '', { x: x + 0.1, y: 1.92, w: 1.98, h: 1.9, fontSize: 10.5, color: hex(theme.textColor), valign: 'top', fontFace: 'Nirmala UI' });
+            });
+            addCallout(0.45, 4.15, 9.1, 0.85);
+            return;
+          }
+
+          // 6. QUIZ
+          if (s.layout === 'quiz') {
+            const q = s.mcq || { question: '', options: ['', '', '', ''], answerIndex: 0, explanation: '' };
+            const letters = ['A', 'B', 'C', 'D'];
+            slide.addShape(pptx.ShapeType.roundRect, { x: 0.45, y: 1.05, w: 9.1, h: 0.9, fill: { color: hex(theme.surface) }, line: { color: hex(theme.accent), width: 1.5 } });
+            slide.addText(q.question || '', { x: 0.6, y: 1.12, w: 8.8, h: 0.76, fontSize: 14, bold: true, color: hex(theme.titleColor), fontFace: 'Nirmala UI' });
+            (q.options || []).slice(0, 4).forEach((opt, oi) => {
+              const ox = oi % 2 === 0 ? 0.45 : 5.1;
+              const oy = oi < 2 ? 2.15 : 3.0;
+              const ok = oi === Number(q.answerIndex);
+              slide.addShape(pptx.ShapeType.roundRect, { x: ox, y: oy, w: 4.45, h: 0.68, fill: { color: ok ? 'DCFCE7' : hex(theme.surface) }, line: { color: ok ? '16A34A' : hex(theme.border), width: 1.2 } });
+              slide.addText(`(${letters[oi]})  ${opt}`, { x: ox + 0.15, y: oy + 0.1, w: 4.15, h: 0.48, fontSize: 12.5, bold: ok, color: ok ? '14532D' : hex(theme.textColor), fontFace: 'Nirmala UI' });
+            });
+            slide.addShape(pptx.ShapeType.rect, { x: 0.45, y: 3.92, w: 9.1, h: 1.05, fill: { color: 'DCFCE7' }, line: { color: '16A34A', width: 1 } });
+            slide.addText(`✅ सही उत्तर (${letters[q.answerIndex] || 'A'}): ${q.explanation || ''}`, { x: 0.6, y: 4.0, w: 8.8, h: 0.9, fontSize: 11, color: '14532D', fontFace: 'Nirmala UI' });
+            return;
+          }
+
+          // 7. MINDMAP
+          if (s.layout === 'mindmap') {
+            (s.bullets || []).slice(0, 4).forEach((b, bi) => {
+              const qx = bi % 2 === 0 ? 0.45 : 5.1;
+              const qy = bi < 2 ? 1.05 : 2.6;
+              slide.addShape(pptx.ShapeType.roundRect, { x: qx, y: qy, w: 4.45, h: 1.4, fill: { color: hex(theme.surface) }, line: { color: hex(theme.quadColors[bi % 4]), width: 1.5 } });
+              slide.addText(`0${bi + 1}. ${b.heading || ''}`, { x: qx + 0.15, y: qy + 0.1, w: 4.15, h: 0.35, fontSize: 12.5, bold: true, color: hex(theme.quadColors[bi % 4]), fontFace: 'Nirmala UI' });
+              slide.addText(b.text || '', { x: qx + 0.15, y: qy + 0.48, w: 4.15, h: 0.85, fontSize: 11, color: hex(theme.textColor), valign: 'top', fontFace: 'Nirmala UI' });
+            });
+            addCallout(0.45, 4.18, 9.1, 0.85);
+            return;
+          }
+
+          // 8, 9, 10: SPLIT VISUAL / TABLE VISUAL / FORMULA
+          let curY = 1.02;
+          if (s.intro) {
+            slide.addText(s.intro, { x: 0.45, y: curY, w: 5.1, h: 0.6, fontSize: 11.5, color: hex(theme.textColor), valign: 'top', fontFace: 'Nirmala UI' });
+            curY += 0.68;
+          }
+          if (s.layout === 'table-visual' && s.table?.headers?.length) {
+            const rows = [
+              s.table.headers.map(h => ({ text: h, options: { bold: true, color: hex(theme.tableHeaderText), fill: hex(theme.tableHeaderBg) } })),
+              ...(s.table.rows || []).map((r, ri) => r.map(c => ({ text: c, options: { color: hex(theme.textColor), fill: ri % 2 === 1 ? hex(theme.tableStripe) : hex(theme.surface) } })))
+            ];
+            slide.addTable(rows, { x: 0.45, y: curY, w: 5.1, fontSize: 9.8, border: { pt: 0.6, color: hex(theme.border) }, fontFace: 'Nirmala UI' });
+            curY += Math.min(2.35, 0.33 * rows.length + 0.15);
+          } else {
+            const lines = (s.bullets || []).slice(0, 4).map(b => ({ text: `${b.heading ? b.heading + ': ' : ''}${b.text}`, options: { bullet: true, breakLine: true, paraSpaceAfter: 6 } }));
+            slide.addText(lines, { x: 0.45, y: curY, w: 5.1, h: 2.05, fontSize: 11.5, color: hex(theme.textColor), valign: 'top', fontFace: 'Nirmala UI' });
+            curY += 2.1;
+          }
+          if (s.formula) slide.addText(s.formula, { x: 0.45, y: Math.min(curY, 3.68), w: 5.1, h: 0.4, fontSize: 11.5, bold: true, color: hex(theme.titleColor), fill: { color: hex(theme.accentSoft) }, line: { color: hex(theme.accent), width: 1 }, fontFace: 'Nirmala UI' });
+          addCallout(0.45, 4.18, 5.1, 0.85);
+          addVisual(5.75, 1.05, 3.8, 3.55, 4.68);
+        });
+
+        const safe = (state.slides[0]?.title || 'AI_PPT_Studio_v4').replace(/[^\w\u0900-\u097F-]+/g, '_').slice(0, 40);
+        pptx.writeFile({ fileName: `${safe}.pptx` });
+        showToast(`Editable .PPTX डाउनलोड हो गया (${total} स्लाइड्स)!`, 'success');
+      } catch (err) {
+        showToast('.PPTX एक्सपोर्ट में त्रुटि आई।', 'error');
+      }
+    }
+
+    /***************************************************************************
+     * 11. DUAL PDF EXPORT (Vector Print-to-PDF + Direct High-Res PDF)
+     ***************************************************************************/
+    function exportVectorPrintPDF() {
+      closePdfModal();
+      const container = document.getElementById('print-deck-container');
+      container.innerHTML = state.slides.map((sl, i) =>
+        `<div class="print-slide-page">${buildSlideHTML(sl, i, state.slides.length, false, true)}</div>`
+      ).join('');
+      setTimeout(() => window.print(), 200);
+    }
+
+    async function exportDirectHighResPDF() {
+      closePdfModal();
+      if (typeof html2canvas === 'undefined' || !window.jspdf?.jsPDF) {
+        showToast('PDF लाइब्रेरी लोड हो रही है, कृपया प्रतीक्षा करें।', 'error');
+        return;
+      }
+      openProgress('हाई-रिज़ॉल्यूशन PDF बन रही है...', `पेज 1 / ${state.slides.length}...`, 6);
+      const sandbox = document.getElementById('pdf-render-sandbox');
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1280, 720], hotfixes: ['px_scaling'] });
+
+        for (let i = 0; i < state.slides.length; i++) {
+          if (cancelRequested) { sandbox.innerHTML = ''; closeProgress(); return; }
+          updateProgress(`पेज ${i + 1} / ${state.slides.length} PDF में जुड़ रहा है...`, Math.round(((i + 1) / state.slides.length) * 96));
+          sandbox.innerHTML = buildSlideHTML(state.slides[i], i, state.slides.length, false, true);
+          await new Promise(r => setTimeout(r, 70));
+
+          const canvas = await html2canvas(sandbox, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: MASTER_THEMES[state.themeId].bg,
+            width: 1280,
+            height: 720
+          });
+          if (i > 0) pdf.addPage([1280, 720], 'landscape');
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.94), 'JPEG', 0, 0, 1280, 720);
+        }
+
+        sandbox.innerHTML = '';
+        const safe = (state.slides[0]?.title || 'AI_PPT_Studio_v4').replace(/[^\w\u0900-\u097F-]+/g, '_').slice(0, 40);
+        pdf.save(`${safe}.pdf`);
+        closeProgress();
+        showToast('हाई-रिज़ॉल्यूशन .PDF डाउनलोड हो गई!', 'success');
+      } catch (e) {
+        sandbox.innerHTML = '';
+        closeProgress();
+        showToast('PDF बनाने में त्रुटि आई।', 'error');
+      }
+    }
+
+    /***************************************************************************
+     * 12. SMART-BOARD PRESENT MODE (Pen + Highlighter + Laser + Zoom 1x/1.5x/2x)
+     ***************************************************************************/
+    let presIndex = 0;
+    let sbTool = 'pointer';
+    let sbColor = '#ef4444';
+    let presZoom = 1;
+    let isDrawing = false;
+    let sbCtx = null;
+
+    function openPresentMode() {
+      presIndex = state.activeIndex;
+      mcqAnswerVisible = false;
+      setPresZoom(1);
+      const ov = document.getElementById('present-overlay');
+      ov.classList.remove('hidden');
+      ov.classList.add('flex');
+      renderPresentSlide();
+      setSmartBoardTool('pointer');
+    }
+
+    function closePresentMode() {
+      document.getElementById('laser-dot').style.display = 'none';
+      const ov = document.getElementById('present-overlay');
+      ov.classList.add('hidden');
+      ov.classList.remove('flex');
+    }
+
+    function setPresZoom(z) {
+      presZoom = z;
+      document.getElementById('present-zoom-container').style.transform = `scale(${z})`;
+      document.querySelectorAll('.zoom-btn').forEach(btn => {
+        const act = Number(btn.dataset.zoom) === z;
+        btn.classList.toggle('bg-sky-600', act);
+        btn.classList.toggle('text-white', act);
+        btn.classList.toggle('bg-slate-800', !act);
+        btn.classList.toggle('text-slate-200', !act);
+      });
+    }
+
+    function renderPresentSlide() {
+      const sl = state.slides[presIndex];
+      document.getElementById('pres-jump-input').value = presIndex + 1;
+      document.getElementById('pres-jump-input').max = state.slides.length;
+      document.getElementById('pres-total-label').textContent = `/ ${state.slides.length}`;
+      document.getElementById('present-stage-1280').innerHTML = buildSlideHTML(sl, presIndex, state.slides.length, false, mcqAnswerVisible);
+      fitStageToViewport('present-viewport', 'present-scaler-outer', 'present-stage-1280');
+      resizeSmartBoardCanvas();
+    }
+
+    function resizeSmartBoardCanvas() {
+      const outer = document.getElementById('present-scaler-outer');
+      const canvas = document.getElementById('smartboard-canvas');
+      if (!outer || !canvas) return;
+      canvas.width = outer.clientWidth || 1280;
+      canvas.height = outer.clientHeight || 720;
+      sbCtx = canvas.getContext('2d');
+      sbCtx.lineCap = 'round';
+      sbCtx.lineJoin = 'round';
+    }
+
+    function setSmartBoardTool(tool) {
+      sbTool = tool;
+      const canvas = document.getElementById('smartboard-canvas');
+      const laser = document.getElementById('laser-dot');
+      laser.style.display = tool === 'laser' ? 'block' : 'none';
+      canvas.style.pointerEvents = (tool === 'pen' || tool === 'highlighter' || tool === 'eraser') ? 'auto' : 'none';
+      canvas.style.cursor = tool === 'laser' ? 'none' : (tool === 'pointer' ? 'default' : 'crosshair');
+
+      ['pointer', 'laser', 'pen', 'highlighter', 'eraser'].forEach(t => {
+        const b = document.getElementById(`btn-tool-${t}`);
+        b.classList.toggle('bg-indigo-600', t === tool);
+        b.classList.toggle('text-white', t === tool);
+        b.classList.toggle('bg-slate-800', t !== tool);
+        b.classList.toggle('text-slate-200', t !== tool);
+      });
+    }
+
+    function initSmartBoardInteractions() {
+      const canvas = document.getElementById('smartboard-canvas');
+      const overlay = document.getElementById('present-overlay');
+      const laser = document.getElementById('laser-dot');
+
+      // Laser pointer tracking
+      const moveLaser = (e) => {
+        if (sbTool !== 'laser') return;
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        laser.style.left = `${cx}px`;
+        laser.style.top = `${cy}px`;
+      };
+      overlay.addEventListener('mousemove', moveLaser);
+      overlay.addEventListener('touchmove', moveLaser, { passive: true });
+
+      const getPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: ((cx - rect.left) / rect.width) * canvas.width,
+          y: ((cy - rect.top) / rect.height) * canvas.height
+        };
+      };
+
+      const start = (e) => {
+        if (sbTool === 'pointer' || sbTool === 'laser' || !sbCtx) return;
+        e.preventDefault();
+        isDrawing = true;
+        const p = getPos(e);
+        sbCtx.beginPath();
+        sbCtx.moveTo(p.x, p.y);
+      };
+
+      const move = (e) => {
+        if (!isDrawing || !sbCtx) return;
+        e.preventDefault();
+        const p = getPos(e);
+        if (sbTool === 'eraser') {
+          sbCtx.globalCompositeOperation = 'destination-out';
+          sbCtx.lineWidth = 26;
+          sbCtx.globalAlpha = 1;
+        } else if (sbTool === 'highlighter') {
+          sbCtx.globalCompositeOperation = 'source-over';
+          sbCtx.strokeStyle = sbColor;
+          sbCtx.lineWidth = 20;
+          sbCtx.globalAlpha = 0.28;
+        } else {
+          sbCtx.globalCompositeOperation = 'source-over';
+          sbCtx.strokeStyle = sbColor;
+          sbCtx.lineWidth = 3.5;
+          sbCtx.globalAlpha = 1;
+        }
+        sbCtx.lineTo(p.x, p.y);
+        sbCtx.stroke();
+      };
+
+      const end = () => { isDrawing = false; if (sbCtx) sbCtx.closePath(); };
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', end);
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      window.addEventListener('touchend', end);
+    }
+
+    /***************************************************************************
+     * 13. JSON SAVE/OPEN, MODALS & QUICK SLIDE CREATORS
+     ***************************************************************************/
+    function saveProjectJSON() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safe = (state.slides[0]?.title || 'AI_PPT_v4_Project').replace(/[^\w\u0900-\u097F-]+/g, '_').slice(0, 35);
+      a.href = url;
+      a.download = `${safe}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('प्रोजेक्ट बैकअप (.json) सेव हो गया!', 'success');
+    }
+
+    function openProjectJSON(file) {
+      const r = new FileReader();
+      r.onload = (e) => {
+        try {
+          const loaded = JSON.parse(e.target.result);
+          if (!Array.isArray(loaded.slides) || !loaded.slides.length) throw new Error('Invalid');
+          state.themeId = MASTER_THEMES[loaded.themeId] ? loaded.themeId : 'up-board';
+          state.footerText = loaded.footerText || state.footerText;
+          state.pageLabel = loaded.pageLabel || 'पृष्ठ';
+          state.fontScale = loaded.fontScale || 100;
+          state.slides = loaded.slides.map((s, i) => normalizeSlide(s, i));
+          state.activeIndex = 0;
+          renderAll();
+          showToast(`प्रोजेक्ट लोड हो गया (${state.slides.length} स्लाइड्स)!`, 'success');
+        } catch (err) {
+          showToast('अमान्य प्रोजेक्ट फाइल।', 'error');
+        }
+      };
+      r.readAsText(file);
+    }
+
+    function addSlideWithLayout(layout) {
+      const prev = state.slides[state.activeIndex];
+      const base = normalizeSlide({
+        layout,
+        badge: layout === 'full-image' ? '16:9 Visual' : (layout === 'text-focus' ? 'विस्तृत व्याख्या' : (prev?.badge || 'अध्याय 1')),
+        title: layout === 'full-image' ? '16:9 शैक्षिक डायग्राम शीर्षक' : (layout === 'text-focus' ? 'विस्तृत व्याख्या (Detailed Explanation)' : 'नई स्लाइड का शीर्षक'),
+        subtitle: layout === 'full-image' ? '' : 'संक्षिप्त उप-शीर्षक यहाँ लिखें',
+        intro: layout === 'full-image' ? '' : 'यहाँ विषय की परिभाषा या मुख्य परिचय लिखें।',
+        bullets: [
+          { heading: 'मुख्य बिंदु 1', text: 'पहला महत्वपूर्ण विवरण यहाँ लिखें।' },
+          { heading: 'मुख्य बिंदु 2', text: 'दूसरा महत्वपूर्ण विवरण यहाँ लिखें।' }
+        ],
+        calloutTitle: 'सरल भाषा में समझें',
+        calloutType: 'simple',
+        calloutText: layout === 'full-image' ? '' : 'छात्रों के लिए सरल व्याख्या या बोर्ड परीक्षा बिंदु यहाँ लिखें।',
+        imagePrompt: 'Widescreen 16:9 clean colorful NCERT educational textbook diagram illustrating the concept clearly',
+        imageCaption: 'चित्र का संक्षिप्त विवरण'
+      });
+      state.slides.splice(state.activeIndex + 1, 0, base);
+      state.activeIndex++;
+      renderAll();
+    }
+
+    function openAIModal() { updateAppendPreview(); document.getElementById('ai-deck-modal').classList.replace('hidden', 'flex'); }
+    function closeAIModal() { document.getElementById('ai-deck-modal').classList.replace('flex', 'hidden'); }
+    function openPdfModal() { document.getElementById('pdf-modal').classList.replace('hidden', 'flex'); }
+    function closePdfModal() { document.getElementById('pdf-modal').classList.replace('flex', 'hidden'); }
+    function openBatchImgModal() {
+      document.getElementById('batch-img-to').value = Math.min(12, state.slides.length);
+      document.getElementById('batch-img-to').max = state.slides.length;
+      document.getElementById('batch-img-from').max = state.slides.length;
+      document.getElementById('batch-img-modal').classList.replace('hidden', 'flex');
+    }
+    function closeBatchImgModal() { document.getElementById('batch-img-modal').classList.replace('flex', 'hidden'); }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.inspector-tab').forEach(t => {
+        const act = t.dataset.tab === tabName;
+        t.classList.toggle('border-indigo-500', act);
+        t.classList.toggle('text-indigo-400', act);
+        t.classList.toggle('bg-slate-800/50', act);
+        t.classList.toggle('border-transparent', !act);
+        t.classList.toggle('text-slate-400', !act);
+      });
+      document.querySelectorAll('.inspector-panel').forEach(p => p.classList.toggle('hidden', p.id !== `tab-${tabName}`));
+    }
+
+    function setAIModalMode(m) {
+      aiModalMode = m;
+      const isMega = m === 'mega';
+      document.getElementById('tab-btn-batch').className = `py-3 text-center border-b-2 ${!isMega ? 'border-indigo-500 text-indigo-300 bg-indigo-500/10' : 'border-transparent text-slate-400 hover:text-white'}`;
+      document.getElementById('tab-btn-mega').className = `py-3 text-center border-b-2 ${isMega ? 'border-amber-500 text-amber-300 bg-amber-500/10' : 'border-transparent text-slate-400 hover:text-white'}`;
+      document.getElementById('batch-count-box').classList.toggle('hidden', isMega);
+      document.getElementById('mega-count-box').classList.toggle('hidden', !isMega);
+      document.getElementById('btn-start-ai-label').textContent = isMega ? '🚀 50-Page मेगा बिल्डर शुरू करें' : '⚡ बैच स्लाइड्स बनाएं';
+      updateAppendPreview();
+    }
+
+    /***************************************************************************
+     * 14. INIT & EVENT LISTENERS
+     ***************************************************************************/
+    document.addEventListener('DOMContentLoaded', async () => {
+      initStaticUI();
+      initSmartBoardInteractions();
+
+      const saved = await loadStateFromIDB();
+      if (saved && Array.isArray(saved.slides) && saved.slides.length) {
+        state.themeId = MASTER_THEMES[saved.themeId] ? saved.themeId : 'up-board';
+        state.footerText = saved.footerText || state.footerText;
+        state.pageLabel = saved.pageLabel || 'पृष्ठ';
+        state.fontScale = saved.fontScale || 100;
+        state.activeIndex = saved.activeIndex || 0;
+        state.slides = saved.slides.map((s, i) => normalizeSlide(s, i));
+      }
+      renderAll();
+
+      new ResizeObserver(() => {
+        fitStageToViewport('stage-viewport', 'stage-scaler-outer', 'slide-stage-1280');
+        if (!document.getElementById('present-overlay').classList.contains('hidden')) {
+          fitStageToViewport('present-viewport', 'present-scaler-outer', 'present-stage-1280');
+          resizeSmartBoardCanvas();
+        }
+      }).observe(document.getElementById('stage-viewport'));
+
+      // Toolbar
+      document.getElementById('btn-open-ai-modal').addEventListener('click', openAIModal);
+      document.getElementById('btn-close-ai-modal').addEventListener('click', closeAIModal);
+      document.getElementById('btn-cancel-ai-modal').addEventListener('click', closeAIModal);
+      document.getElementById('tab-btn-batch').addEventListener('click', () => setAIModalMode('batch'));
+      document.getElementById('tab-btn-mega').addEventListener('click', () => setAIModalMode('mega'));
+      document.getElementById('ai-batch-count').addEventListener('change', updateAppendPreview);
+      document.getElementById('ai-mega-count').addEventListener('change', updateAppendPreview);
+      document.getElementById('btn-start-ai-gen').addEventListener('click', runAIGenerator);
+
+      document.getElementById('btn-open-batch-img').addEventListener('click', openBatchImgModal);
+      document.getElementById('btn-close-batch-img').addEventListener('click', closeBatchImgModal);
+      document.getElementById('btn-cancel-batch-img').addEventListener('click', closeBatchImgModal);
+      document.querySelectorAll('input[name="batch-img-scope"]').forEach(r => {
+        r.addEventListener('change', () => {
+          const isRange = document.querySelector('input[name="batch-img-scope"]:checked').value === 'range';
+          const box = document.getElementById('batch-img-range-inputs');
+          box.classList.toggle('opacity-50', !isRange);
+          box.classList.toggle('pointer-events-none', !isRange);
+        });
+      });
+      document.getElementById('btn-run-batch-img').addEventListener('click', () => {
+        const scope = document.querySelector('input[name="batch-img-scope"]:checked').value;
+        closeBatchImgModal();
+        if (scope === 'missing') {
+          const idxs = state.slides.map((s, i) => (!s.imageData && s.layout !== 'text-focus' && s.layout !== 'quiz' && s.layout !== 'steps' && s.layout !== 'mindmap' ? i : -1)).filter(i => i >= 0);
+          generateImagesForIndices(idxs);
+        } else {
+          const f = Math.max(1, parseInt(document.getElementById('batch-img-from').value, 10) || 1);
+          const t = Math.min(state.slides.length, parseInt(document.getElementById('batch-img-to').value, 10) || 12);
+          const idxs = [];
+          for (let i = f - 1; i <= t - 1; i++) idxs.push(i);
+          generateImagesForIndices(idxs);
+        }
+      });
+
+      document.getElementById('btn-cancel-progress').addEventListener('click', () => { cancelRequested = true; });
+      document.getElementById('btn-save-json').addEventListener('click', saveProjectJSON);
+      document.getElementById('input-open-json').addEventListener('change', (e) => { if (e.target.files?.[0]) openProjectJSON(e.target.files[0]); e.target.value = ''; });
+      document.getElementById('btn-present').addEventListener('click', openPresentMode);
+      document.getElementById('btn-open-pdf-modal').addEventListener('click', openPdfModal);
+      document.getElementById('btn-close-pdf-modal').addEventListener('click', closePdfModal);
+      document.getElementById('btn-pdf-vector-print').addEventListener('click', exportVectorPrintPDF);
+      document.getElementById('btn-pdf-direct-download').addEventListener('click', exportDirectHighResPDF);
+      document.getElementById('btn-export-pptx').addEventListener('click', exportToPPTX);
+
+      // Left Sidebar Quick Add + Search + Jump
+      document.getElementById('btn-add-slide').addEventListener('click', () => addSlideWithLayout('split-visual'));
+      document.getElementById('btn-quick-add-img').addEventListener('click', () => addSlideWithLayout('full-image'));
+      document.getElementById('btn-quick-add-text').addEventListener('click', () => addSlideWithLayout('text-focus'));
+      document.getElementById('input-slide-search').addEventListener('input', renderSlideList);
+      document.getElementById('btn-slide-jump').addEventListener('click', () => {
+        const n = parseInt(document.getElementById('input-slide-jump').value, 10);
+        if (n >= 1 && n <= state.slides.length) selectSlide(n - 1);
+        else showToast(`1 से ${state.slides.length} के बीच नंबर डालें।`, 'error');
+      });
+      document.getElementById('input-slide-jump').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-slide-jump').click(); });
+
+      document.getElementById('btn-dup-slide').addEventListener('click', () => {
+        const clone = normalizeSlide(JSON.parse(JSON.stringify(state.slides[state.activeIndex])));
+        clone.id = `s-${Date.now()}`;
+        state.slides.splice(state.activeIndex + 1, 0, clone);
+        state.activeIndex++;
+        renderAll();
+        showToast('स्लाइड डुप्लिकेट हो गई।', 'info');
+      });
+      document.getElementById('btn-del-slide').addEventListener('click', () => {
+        if (state.slides.length <= 1) { showToast('कम से कम 1 स्लाइड होनी चाहिए।', 'error'); return; }
+        state.slides.splice(state.activeIndex, 1);
+        state.activeIndex = Math.max(0, state.activeIndex - 1);
+        renderAll();
+      });
+      document.getElementById('btn-move-up').addEventListener('click', () => {
+        if (state.activeIndex <= 0) return;
+        [state.slides[state.activeIndex], state.slides[state.activeIndex - 1]] = [state.slides[state.activeIndex - 1], state.slides[state.activeIndex]];
+        state.activeIndex--;
+        renderAll();
+      });
+      document.getElementById('btn-move-down').addEventListener('click', () => {
+        if (state.activeIndex >= state.slides.length - 1) return;
+        [state.slides[state.activeIndex], state.slides[state.activeIndex + 1]] = [state.slides[state.activeIndex + 1], state.slides[state.activeIndex]];
+        state.activeIndex++;
+        renderAll();
+      });
+
+      // Inspector Tabs
+      document.querySelectorAll('.inspector-tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+      // Full 16:9 Image Controls
+      document.getElementById('chk-pure-image').addEventListener('change', (e) => {
+        state.slides[state.activeIndex].pureImage = e.target.checked;
+        renderActiveSlide();
+        scheduleAutoSave();
+      });
+      document.getElementById('btn-fit-contain').addEventListener('click', () => {
+        state.slides[state.activeIndex].imageFit = 'contain';
+        renderAll();
+      });
+      document.getElementById('btn-fit-cover').addEventListener('click', () => {
+        state.slides[state.activeIndex].imageFit = 'cover';
+        renderAll();
+      });
+      document.getElementById('btn-add-pin').addEventListener('click', () => {
+        const cur = state.slides[state.activeIndex];
+        if (!cur.pins) cur.pins = [];
+        const num = cur.pins.length + 1;
+        cur.pins.push({ id: `p-${Date.now()}`, num, x: 25 + ((num * 13) % 55), y: 28 + ((num * 11) % 45), label: `बिंदु ${num}` });
+        renderAll();
+      });
+
+      // Layout Buttons
+      document.querySelectorAll('.layout-btn').forEach(btn => btn.addEventListener('click', () => {
+        state.slides[state.activeIndex].layout = btn.dataset.layout;
+        renderAll();
+      }));
+
+      // Content Input Bindings
+      const bindInput = (id, key) => {
+        document.getElementById(id).addEventListener('input', (e) => {
+          state.slides[state.activeIndex][key] = e.target.value;
+          renderActiveSlide();
+          renderSlideList();
+          scheduleAutoSave();
+        });
+      };
+      bindInput('ed-badge', 'badge');
+      bindInput('ed-formula', 'formula');
+      bindInput('ed-title', 'title');
+      bindInput('ed-subtitle', 'subtitle');
+      bindInput('ed-intro', 'intro');
+      bindInput('ed-callout-title', 'calloutTitle');
+      bindInput('ed-callout-text', 'calloutText');
+
+      document.getElementById('ed-callout-type').addEventListener('change', (e) => { state.slides[state.activeIndex].calloutType = e.target.value; renderActiveSlide(); scheduleAutoSave(); });
+      document.getElementById('ed-mcq-q').addEventListener('input', (e) => { state.slides[state.activeIndex].mcq.question = e.target.value; renderActiveSlide(); scheduleAutoSave(); });
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`ed-mcq-opt${i}`).addEventListener('input', (e) => { state.slides[state.activeIndex].mcq.options[i] = e.target.value; renderActiveSlide(); scheduleAutoSave(); });
+      }
+      document.getElementById('ed-mcq-ans').addEventListener('change', (e) => { state.slides[state.activeIndex].mcq.answerIndex = parseInt(e.target.value, 10); renderActiveSlide(); scheduleAutoSave(); });
+      document.getElementById('ed-mcq-exp').addEventListener('input', (e) => { state.slides[state.activeIndex].mcq.explanation = e.target.value; renderActiveSlide(); scheduleAutoSave(); });
+
+      document.getElementById('btn-add-table-row').addEventListener('click', () => {
+        const cur = state.slides[state.activeIndex];
+        cur.table.rows.push(cur.table.headers.map(() => 'नया मान'));
+        renderActiveSlide();
+        scheduleAutoSave();
+      });
+      document.getElementById('btn-del-table-row').addEventListener('click', () => {
+        const cur = state.slides[state.activeIndex];
+        if (cur.table.rows.length > 1) { cur.table.rows.pop(); renderActiveSlide(); scheduleAutoSave(); }
+      });
+      document.getElementById('btn-add-table-col').addEventListener('click', () => {
+        const cur = state.slides[state.activeIndex];
+        cur.table.headers.push(`कॉलम ${cur.table.headers.length + 1}`);
+        cur.table.rows.forEach(r => r.push('—'));
+        renderActiveSlide();
+        scheduleAutoSave();
+      });
+      document.getElementById('btn-add-bullet').addEventListener('click', () => {
+        const cur = state.slides[state.activeIndex];
+        cur.bullets.push({ heading: 'नया बिंदु', text: 'विवरण लिखें...' });
+        renderAll();
+      });
+
+      // AI & Image Tab Events
+      document.getElementById('btn-gen-pair-slides').addEventListener('click', generate2SlidePair);
+      document.getElementById('btn-run-page-ai').addEventListener('click', runSingleSlideAI);
+      document.getElementById('btn-translate-slide').addEventListener('click', translateCurrentSlide);
+      document.getElementById('btn-refine-img-prompt').addEventListener('click', refineSlideImagePrompt);
+      document.getElementById('btn-gen-slide-img').addEventListener('click', generateCurrentSlideImage);
+      document.getElementById('input-img-prompt').addEventListener('input', (e) => { state.slides[state.activeIndex].imagePrompt = e.target.value; scheduleAutoSave(); });
+      document.getElementById('input-img-caption').addEventListener('input', (e) => { state.slides[state.activeIndex].imageCaption = e.target.value; renderActiveSlide(); scheduleAutoSave(); });
+      document.getElementById('input-upload-img').addEventListener('change', (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = (ev) => { state.slides[state.activeIndex].imageData = ev.target.result; renderAll(); showToast('इमेज फुल-क्वालिटी में जोड़ी गई!', 'success'); };
+        r.readAsDataURL(f);
+        e.target.value = '';
+      });
+      document.getElementById('btn-clear-img').addEventListener('click', () => { state.slides[state.activeIndex].imageData = null; renderAll(); });
+
+      // Global Theme Controls
+      document.getElementById('input-global-footer').addEventListener('input', (e) => { state.footerText = e.target.value; renderActiveSlide(); scheduleAutoSave(); });
+      document.getElementById('input-page-label').addEventListener('change', (e) => { state.pageLabel = e.target.value; renderAll(); });
+      document.getElementById('input-font-scale').addEventListener('input', (e) => {
+        state.fontScale = parseInt(e.target.value, 10);
+        document.getElementById('font-scale-label').textContent = state.fontScale + '%';
+        renderActiveSlide();
+        scheduleAutoSave();
+      });
+
+      // Smart-Board Present Controls
+      document.getElementById('btn-pres-prev').addEventListener('click', () => { if (presIndex > 0) { presIndex--; mcqAnswerVisible = false; renderPresentSlide(); } });
+      document.getElementById('btn-pres-next').addEventListener('click', () => { if (presIndex < state.slides.length - 1) { presIndex++; mcqAnswerVisible = false; renderPresentSlide(); } });
+      document.getElementById('pres-jump-input').addEventListener('change', (e) => {
+        const n = parseInt(e.target.value, 10);
+        if (n >= 1 && n <= state.slides.length) { presIndex = n - 1; mcqAnswerVisible = false; renderPresentSlide(); }
+      });
+      document.getElementById('btn-pres-exit').addEventListener('click', closePresentMode);
+
+      document.getElementById('btn-tool-pointer').addEventListener('click', () => setSmartBoardTool('pointer'));
+      document.getElementById('btn-tool-laser').addEventListener('click', () => setSmartBoardTool('laser'));
+      document.getElementById('btn-tool-pen').addEventListener('click', () => setSmartBoardTool('pen'));
+      document.getElementById('btn-tool-highlighter').addEventListener('click', () => setSmartBoardTool('highlighter'));
+      document.getElementById('btn-tool-eraser').addEventListener('click', () => setSmartBoardTool('eraser'));
+      document.getElementById('btn-tool-clear').addEventListener('click', () => {
+        const c = document.getElementById('smartboard-canvas');
+        if (sbCtx) sbCtx.clearRect(0, 0, c.width, c.height);
+      });
+      document.querySelectorAll('.sb-color-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sbColor = btn.dataset.color;
+          document.querySelectorAll('.sb-color-btn').forEach(b => b.classList.remove('ring-2', 'ring-white'));
+          btn.classList.add('ring-2', 'ring-white');
+          if (sbTool === 'pointer' || sbTool === 'eraser' || sbTool === 'laser') setSmartBoardTool('pen');
+        });
+      });
+      document.querySelectorAll('.zoom-btn').forEach(btn => btn.addEventListener('click', () => setPresZoom(Number(btn.dataset.zoom))));
+
+      document.addEventListener('keydown', (e) => {
+        if (document.getElementById('present-overlay').classList.contains('hidden')) return;
+        if (e.key === 'Escape') closePresentMode();
+        if (e.key === 'ArrowRight' || e.key === ' ') { if (presIndex < state.slides.length - 1) { presIndex++; mcqAnswerVisible = false; renderPresentSlide(); } }
+        if (e.key === 'ArrowLeft') { if (presIndex > 0) { presIndex--; mcqAnswerVisible = false; renderPresentSlide(); } }
+      });
+    });
+  </script>
+</body>
+</html>
